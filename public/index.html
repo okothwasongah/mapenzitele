@@ -1,0 +1,1416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>mapenziTELE – No Labels. Just Vibes.</title>
+<script src="/socket.io/socket.io.js"></script>
+<style>
+:root{
+  --ink:#08080F;--deep:#0F0F1A;--card:#161622;--border:#252538;
+  --fire:#FF3D5A;--fire2:#FF6B35;--volt:#FFE600;--lilac:#C084FC;
+  --text:#F4F0FF;--muted:#7A7A9A;--online:#39FF7E;--r:12px;--r-lg:20px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--ink);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;overflow-x:hidden}
+.hidden{display:none!important}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:13px 28px;border-radius:50px;border:none;font-size:15px;font-weight:700;cursor:pointer;transition:all .22s;letter-spacing:.3px;text-decoration:none}
+.btn-fire{background:linear-gradient(135deg,var(--fire),var(--fire2));color:#fff;box-shadow:0 4px 28px rgba(255,61,90,.4)}
+.btn-fire:hover{transform:translateY(-2px);box-shadow:0 8px 48px rgba(255,61,90,.55)}
+.btn-ghost{background:transparent;color:var(--text);border:1.5px solid var(--border)}
+.btn-ghost:hover{border-color:var(--fire);color:var(--fire)}
+.btn-volt{background:var(--volt);color:var(--ink);font-weight:800}
+.btn-volt:hover{transform:translateY(-2px);box-shadow:0 8px 36px rgba(255,230,0,.4)}
+.btn-sm{padding:8px 16px;font-size:13px}
+input,textarea,select{background:var(--card);border:1.5px solid var(--border);color:var(--text);border-radius:var(--r);padding:12px 16px;font-size:14px;width:100%;transition:border-color .2s;outline:none;font-family:inherit}
+input:focus,textarea:focus,select:focus{border-color:var(--fire)}
+input::placeholder,textarea::placeholder{color:var(--muted)}
+.badge{display:inline-block;padding:4px 12px;border-radius:50px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px}
+.badge-fire{background:rgba(255,61,90,.18);color:var(--fire)}
+.badge-volt{background:rgba(255,230,0,.15);color:var(--volt)}
+.badge-online{background:rgba(57,255,126,.15);color:var(--online)}
+.badge-lilac{background:rgba(192,132,252,.15);color:var(--lilac)}
+.grad-text{background:linear-gradient(135deg,var(--fire),var(--fire2),var(--volt));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle}
+.spinner-dark{border:2px solid rgba(0,0,0,.2);border-top-color:var(--ink)}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ══ LANDING ══ */
+#page-landing{min-height:100vh;position:relative;overflow:hidden}
+.orb{position:absolute;border-radius:50%;filter:blur(80px);pointer-events:none;animation:drift 8s ease-in-out infinite}
+.orb1{width:500px;height:500px;background:rgba(255,61,90,.18);top:-100px;left:-150px}
+.orb2{width:400px;height:400px;background:rgba(255,107,53,.14);bottom:-80px;right:-100px;animation-delay:-3s}
+.orb3{width:300px;height:300px;background:rgba(192,132,252,.12);top:40%;left:60%;animation-delay:-5s}
+@keyframes drift{0%,100%{transform:translate(0,0)}50%{transform:translate(30px,-40px)}}
+.lp-nav{display:flex;align-items:center;justify-content:space-between;padding:22px 64px;position:sticky;top:0;z-index:100;background:rgba(8,8,15,.85);backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,61,90,.12)}
+.logo{font-size:20px;font-weight:900;letter-spacing:-.5px}.logo span{color:var(--fire)}
+.ticker-wrap{overflow:hidden;border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:12px 0}
+.ticker{display:flex;gap:60px;white-space:nowrap;animation:tick 22s linear infinite}
+.ticker-item{font-size:13px;font-weight:700;color:var(--muted);display:flex;align-items:center;gap:8px}
+.ticker-item span{color:var(--fire)}
+@keyframes tick{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.hero{max-width:1180px;margin:0 auto;padding:80px 64px 50px;display:grid;grid-template-columns:1fr 400px;gap:60px;align-items:center;position:relative;z-index:1}
+.hero-eyebrow{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--fire);font-weight:700;margin-bottom:18px;display:flex;align-items:center;gap:8px}
+.e-dot{width:6px;height:6px;border-radius:50%;background:var(--fire);animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}
+.hero h1{font-size:clamp(40px,5.5vw,70px);font-weight:900;line-height:1.0;letter-spacing:-2px;margin-bottom:20px}
+.hero h1 em{font-style:normal;display:block}
+.hero-sub{font-size:16px;color:var(--muted);line-height:1.7;margin-bottom:24px;max-width:490px}
+.price-badge{display:inline-flex;align-items:center;gap:10px;background:rgba(255,230,0,.1);border:1.5px solid rgba(255,230,0,.4);border-radius:50px;padding:10px 20px;margin-bottom:22px;font-size:14px;font-weight:700;color:var(--volt)}
+.price-badge .amt{font-size:22px;font-weight:900}
+.mood-row{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0}
+.mood-tag{padding:8px 16px;border-radius:50px;font-size:13px;font-weight:700;background:var(--card);border:1.5px solid var(--border);cursor:pointer;transition:all .2s;user-select:none}
+.mood-tag:hover,.mood-tag.on{border-color:var(--fire);color:var(--fire);background:rgba(255,61,90,.1)}
+.hero-cta{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.hero-note{font-size:12px;color:var(--muted);margin-top:12px}
+.hero-note span{color:var(--online)}
+.vibe-strip{display:flex;gap:36px;margin-top:36px;padding-top:28px;border-top:1px solid var(--border)}
+.vibe-stat .num{font-size:28px;font-weight:900;letter-spacing:-1px}
+.vibe-stat .lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-top:2px}
+.card-stack{position:relative;height:480px}
+.stack-card{position:absolute;border-radius:24px;overflow:hidden;background:var(--card);border:1px solid var(--border);box-shadow:0 20px 60px rgba(0,0,0,.6);cursor:pointer;transition:transform .3s}
+.stack-card:hover{transform:scale(1.02) rotate(0deg)!important}
+.sc-1{width:230px;height:330px;top:0;left:80px;z-index:3;transform:rotate(-3deg)}
+.sc-2{width:210px;height:300px;top:60px;right:20px;z-index:2;transform:rotate(4deg)}
+.sc-3{width:190px;height:270px;top:150px;left:20px;z-index:1;transform:rotate(-6deg)}
+.sc-face{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:72px;background:linear-gradient(160deg,var(--deep),var(--card));overflow:hidden}
+.sc-face img{width:100%;height:100%;object-fit:cover}
+.sc-info{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(8,8,15,.97));padding:18px 14px 12px}
+.sc-name{font-size:16px;font-weight:800}.sc-vibe{font-size:11px;color:var(--fire);font-weight:600;margin-top:2px}
+.how{max-width:1100px;margin:0 auto;padding:50px 64px;position:relative;z-index:1}
+.how h2{font-size:34px;font-weight:900;letter-spacing:-1px;margin-bottom:38px;text-align:center}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.step{background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);padding:28px 24px;transition:border-color .25s,transform .25s}
+.step:hover{border-color:var(--fire);transform:translateY(-4px)}
+.step-num{font-size:44px;font-weight:900;color:var(--fire);opacity:.3;line-height:1;margin-bottom:10px}
+.step h3{font-size:16px;font-weight:800;margin-bottom:8px}.step p{font-size:13px;color:var(--muted);line-height:1.6}
+
+/* ══ MODALS ══ */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.78);backdrop-filter:blur(10px);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px}
+.modal{background:var(--deep);border:1px solid var(--border);border-radius:var(--r-lg);padding:36px;width:100%;max-width:460px;position:relative;animation:slideUp .3s ease;max-height:90vh;overflow-y:auto}
+@keyframes slideUp{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:translateY(0)}}
+.modal-close{position:absolute;top:14px;right:14px;background:var(--card);border:none;color:var(--muted);width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center}
+.modal-close:hover{color:var(--text)}
+.modal h2{font-size:23px;font-weight:900;letter-spacing:-.5px;margin-bottom:5px}
+.modal .sub{color:var(--muted);font-size:13px;margin-bottom:22px}
+.form-group{margin-bottom:14px}
+.form-group label{display:block;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.6px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sel-row{display:flex;gap:7px;flex-wrap:wrap}
+.sel-btn{flex:1;min-width:70px;padding:10px;text-align:center;background:var(--card);border:1.5px solid var(--border);border-radius:var(--r);cursor:pointer;font-size:13px;font-weight:700;transition:all .2s;user-select:none}
+.sel-btn:hover,.sel-btn.active{border-color:var(--fire);color:var(--fire);background:rgba(255,61,90,.08)}
+.auth-switch{text-align:center;margin-top:14px;font-size:13px;color:var(--muted)}
+.auth-switch a{color:var(--fire);cursor:pointer;font-weight:700}
+.field-error{font-size:11px;color:var(--fire);margin-top:4px}
+
+/* ══ PAYMENT MODAL ══ */
+.pay-modal{background:var(--deep);border:1px solid var(--border);border-radius:var(--r-lg);padding:38px;width:100%;max-width:440px;position:relative;animation:slideUp .3s ease;text-align:center}
+.pay-modal h2{font-size:24px;font-weight:900;margin-bottom:5px}
+.pay-amount{font-size:52px;font-weight:900;letter-spacing:-2px;margin:14px 0 3px}
+.pay-period{font-size:13px;color:var(--muted);margin-bottom:22px}
+.pay-perks{text-align:left;background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px 18px;margin-bottom:20px}
+.pay-perk{font-size:13px;color:var(--text);margin:6px 0;display:flex;align-items:center;gap:8px}
+.pay-perk::before{content:'✓';color:var(--online);font-weight:800}
+.pay-methods{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:18px}
+.pay-method{background:var(--card);border:2px solid var(--border);border-radius:var(--r-lg);padding:14px 10px;cursor:pointer;transition:all .22s;text-align:center}
+.pay-method:hover,.pay-method.sel{border-color:var(--volt);background:rgba(255,230,0,.06)}
+.pay-method .icon{font-size:26px;margin-bottom:5px}
+.pay-method .name{font-size:13px;font-weight:700}
+.pay-method .hint{font-size:10px;color:var(--muted);margin-top:2px}
+.pay-input-wrap{background:var(--card);border:1.5px solid var(--border);border-radius:var(--r-lg);padding:16px;margin-bottom:14px;text-align:left;display:none}
+.pay-input-wrap.show{display:block}
+.pay-status{padding:12px;border-radius:var(--r);text-align:center;font-size:14px;font-weight:700;display:none;margin-bottom:12px}
+.pay-status.processing{background:rgba(255,230,0,.1);color:var(--volt);border:1px solid rgba(255,230,0,.3);display:block}
+.pay-status.success{background:rgba(57,255,126,.1);color:var(--online);border:1px solid rgba(57,255,126,.3);display:block}
+.pay-status.error{background:rgba(255,61,90,.1);color:var(--fire);border:1px solid rgba(255,61,90,.3);display:block}
+.poll-progress{background:var(--deep);border-radius:50px;height:3px;overflow:hidden;margin-top:8px;display:none}
+.poll-bar{height:100%;background:linear-gradient(90deg,var(--fire),var(--volt));border-radius:50px;animation:poll 3s linear infinite}
+@keyframes poll{from{width:0%}to{width:100%}}
+
+/* ══ APP SHELL ══ */
+#page-app{display:flex;height:100vh;overflow:hidden}
+.sidebar{width:72px;background:var(--deep);border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:center;padding:18px 0;gap:6px;z-index:50;flex-shrink:0}
+.sb-logo{font-size:15px;font-weight:900;margin-bottom:14px;color:var(--fire)}
+.sb-btn{width:46px;height:46px;border-radius:14px;border:none;background:transparent;color:var(--muted);display:flex;align-items:center;justify-content:center;font-size:21px;cursor:pointer;transition:all .18s;position:relative}
+.sb-btn:hover{background:rgba(255,61,90,.1);color:var(--text)}
+.sb-btn.active{background:rgba(255,61,90,.18);color:var(--fire)}
+.sb-div{width:36px;height:1px;background:var(--border);margin:6px 0}
+.sb-notif{position:absolute;top:5px;right:5px;background:var(--fire);color:#fff;font-size:9px;font-weight:800;width:15px;height:15px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.app-main{flex:1;overflow-y:auto;background:var(--ink)}
+
+/* ══ DISCOVER ══ */
+#tab-discover{padding:26px 30px;max-width:1080px;margin:0 auto}
+.disc-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:12px}
+.disc-header h2{font-size:24px;font-weight:900;letter-spacing:-.5px}
+.filter-bar{display:flex;gap:7px;flex-wrap:wrap}
+.chip{padding:7px 15px;border-radius:50px;background:var(--card);border:1.5px solid var(--border);font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;transition:all .18s;user-select:none}
+.chip:hover,.chip.on{border-color:var(--fire);color:var(--fire);background:rgba(255,61,90,.08)}
+.online-bar{display:flex;align-items:center;gap:10px;background:rgba(57,255,126,.06);border:1px solid rgba(57,255,126,.2);border-radius:50px;padding:7px 16px;margin-bottom:16px;width:fit-content}
+.online-pulse{width:8px;height:8px;border-radius:50%;background:var(--online);animation:pulse 1.5s infinite}
+.online-bar span{font-size:12px;font-weight:700;color:var(--online)}
+.geo-bar{display:flex;align-items:center;gap:10px;background:rgba(192,132,252,.08);border:1px solid rgba(192,132,252,.25);border-radius:50px;padding:7px 16px;margin-bottom:18px;width:fit-content;font-size:12px;font-weight:700;color:var(--lilac);cursor:pointer;transition:all .2s}
+.geo-bar:hover{background:rgba(192,132,252,.14)}
+.geo-dot{width:7px;height:7px;border-radius:50%;background:var(--lilac);animation:pulse 1.5s infinite}
+.section-lbl{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin:18px 0 10px;display:flex;align-items:center;gap:8px}
+.section-lbl::after{content:'';flex:1;height:1px;background:var(--border)}
+.profiles-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:17px}
+.empty-state{text-align:center;padding:60px 20px;color:var(--muted)}
+.empty-state .es-icon{font-size:56px;margin-bottom:14px;opacity:.3}
+.empty-state p{font-size:15px;font-weight:600}
+
+/* PROFILE CARD */
+.pcard{background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;cursor:pointer;transition:transform .22s,border-color .22s;position:relative}
+.pcard:hover{transform:translateY(-5px);border-color:rgba(255,61,90,.4)}
+.pcard-face{width:100%;height:220px;display:flex;align-items:center;justify-content:center;font-size:72px;background:linear-gradient(160deg,var(--deep),var(--card));position:relative;overflow:hidden}
+.pcard-face img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0}
+.pcard-face .fe{position:relative;z-index:1}
+.nearby-chip{position:absolute;top:9px;left:9px;background:rgba(192,132,252,.92);backdrop-filter:blur(4px);border-radius:50px;padding:3px 9px;font-size:10px;font-weight:800;color:#fff}
+.pcard-pills{position:absolute;bottom:9px;left:9px;right:9px;display:flex;gap:4px;flex-wrap:wrap}
+.ppill{font-size:10px;font-weight:700;padding:3px 8px;border-radius:50px;background:rgba(8,8,15,.85);backdrop-filter:blur(4px);border:1px solid var(--border)}
+.ppill.av{border-color:var(--online);color:var(--online)}
+.ppill.vip{border-color:var(--volt);color:var(--volt)}
+.pcard-body{padding:12px 13px 7px}
+.pcard-name-row{display:flex;align-items:center;gap:6px;margin-bottom:3px}
+.pcard-name{font-size:15px;font-weight:800}
+.online-dot{width:7px;height:7px;border-radius:50%;background:var(--online);flex-shrink:0}
+.pcard-meta{font-size:11px;color:var(--muted);margin-bottom:5px}
+.pcard-tl{font-size:12px;color:var(--text);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.pcard-acts{display:flex;justify-content:space-around;padding:9px 11px;border-top:1px solid var(--border)}
+.act{width:37px;height:37px;border-radius:50%;border:1.5px solid var(--border);background:transparent;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;transition:all .18s}
+.act.like{border-color:var(--fire);color:var(--fire)}
+.act.like:hover{background:var(--fire);color:#fff;box-shadow:0 0 18px rgba(255,61,90,.5)}
+.act.spark{border-color:var(--volt);color:var(--volt)}
+.act.spark:hover{background:var(--volt);color:var(--ink)}
+.act.msg{border-color:var(--lilac);color:var(--lilac)}
+.act.msg:hover{background:var(--lilac);color:#fff}
+.act:hover:not(.like):not(.spark):not(.msg){background:var(--card)}
+
+/* ══ PROFILE DETAIL MODAL ══ */
+.pmodal-ov{position:fixed;inset:0;background:rgba(0,0,0,.82);backdrop-filter:blur(12px);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px}
+.pmodal{background:var(--deep);border:1px solid var(--border);border-radius:var(--r-lg);width:100%;max-width:760px;max-height:90vh;overflow-y:auto;display:grid;grid-template-columns:1fr 1fr;animation:slideUp .3s ease}
+.pmodal-gallery{position:relative;min-height:400px;background:linear-gradient(160deg,var(--deep),var(--card));display:flex;align-items:center;justify-content:center;font-size:90px;border-radius:var(--r-lg) 0 0 var(--r-lg);overflow:hidden}
+.pmodal-gallery .main-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.pmodal-gallery .fe{position:relative;z-index:1}
+.avail-banner{position:absolute;top:12px;left:12px;background:rgba(8,8,15,.85);border:1px solid rgba(57,255,126,.4);border-radius:50px;padding:5px 12px;font-size:11px;font-weight:700;color:var(--online)}
+.pmodal-thumbs{position:absolute;bottom:10px;left:10px;display:flex;gap:5px}
+.pm-thumb{width:40px;height:40px;border-radius:8px;border:2px solid transparent;overflow:hidden;cursor:pointer;transition:border-color .18s;flex-shrink:0}
+.pm-thumb img{width:100%;height:100%;object-fit:cover}
+.pm-thumb.active{border-color:var(--fire)}
+.pmodal-info{padding:28px;overflow-y:auto}
+.pmodal-info h2{font-size:24px;font-weight:900;letter-spacing:-.5px;margin-bottom:4px}
+.pmodal-loc{font-size:13px;color:var(--muted);margin-bottom:9px}
+.pmodal-tl{font-size:14px;font-style:italic;color:var(--text);line-height:1.6;margin-bottom:12px}
+.pmodal-vibes{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:16px}
+.meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:18px}
+.meta-item{background:var(--card);border-radius:var(--r);padding:9px 12px}
+.meta-item .lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.meta-item .val{font-size:13px;font-weight:700;margin-top:2px}
+.pmodal-acts{display:flex;gap:8px;flex-wrap:wrap}
+
+/* ══ MATCHES ══ */
+#tab-matches{padding:26px 30px}
+.matches-hero{background:linear-gradient(135deg,rgba(255,61,90,.12),rgba(255,107,53,.08));border:1px solid rgba(255,61,90,.2);border-radius:var(--r-lg);padding:24px;margin-bottom:24px;display:flex;align-items:center;gap:16px}
+.matches-hero .icon{font-size:44px}
+.matches-hero h2{font-size:20px;font-weight:900;margin-bottom:3px}
+.matches-hero p{font-size:13px;color:var(--muted)}
+.matches-wrap{display:flex;gap:14px;flex-wrap:wrap}
+.mbub{display:flex;flex-direction:column;align-items:center;gap:7px;cursor:pointer;width:86px}
+.mring{position:relative;width:68px;height:68px;border-radius:50%;background:linear-gradient(135deg,var(--fire),var(--fire2));padding:2.5px}
+.mring-inner{width:100%;height:100%;border-radius:50%;background:var(--deep);display:flex;align-items:center;justify-content:center;font-size:26px;overflow:hidden}
+.mring-inner img{width:100%;height:100%;object-fit:cover}
+.m-online-dot{position:absolute;bottom:2px;right:2px;width:11px;height:11px;border-radius:50%;background:var(--online);border:2px solid var(--deep)}
+.mname{font-size:12px;font-weight:700;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%}
+
+/* ══ MESSAGES ══ */
+#tab-messages{display:flex;height:100%;overflow:hidden}
+.conv-list{width:292px;border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto;background:var(--deep)}
+.conv-list-hdr{padding:18px 15px 8px;font-size:17px;font-weight:900;letter-spacing:-.3px}
+.conv-search-wrap{padding:0 12px 10px}
+.conv-item{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;transition:background .15s;border-bottom:1px solid rgba(255,255,255,.04);position:relative}
+.conv-item:hover,.conv-item.active{background:rgba(255,61,90,.07)}
+.conv-item.active{border-left:3px solid var(--fire)}
+.conv-av{position:relative;width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--fire),var(--fire2));display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;overflow:hidden}
+.conv-av img{width:100%;height:100%;object-fit:cover}
+.conv-av .dot{position:absolute;bottom:1px;right:1px;width:9px;height:9px;border-radius:50%;background:var(--online);border:2px solid var(--deep)}
+.conv-info{flex:1;min-width:0}
+.conv-name{font-size:13px;font-weight:800}
+.conv-prev{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.conv-meta{display:flex;flex-direction:column;align-items:flex-end;gap:3px}
+.conv-time{font-size:10px;color:var(--muted)}
+.conv-unread{background:var(--fire);color:#fff;font-size:9px;font-weight:800;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+.chat-win{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.chat-hdr{display:flex;align-items:center;gap:11px;padding:14px 20px;border-bottom:1px solid var(--border);background:var(--deep)}
+.chat-hdr-av{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--fire),var(--fire2));display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;overflow:hidden}
+.chat-hdr-av img{width:100%;height:100%;object-fit:cover}
+.chat-hdr-info .hname{font-size:14px;font-weight:800}
+.chat-hdr-info .hstatus{font-size:11px;color:var(--online)}
+.chat-hdr-acts{margin-left:auto;display:flex;gap:7px}
+.chat-body{flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:10px}
+.msg{display:flex;gap:8px;max-width:68%}
+.msg.sent{align-self:flex-end;flex-direction:row-reverse}
+.msg-av{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--fire),var(--fire2));display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;overflow:hidden}
+.msg-av img{width:100%;height:100%;object-fit:cover}
+.msg-bubble{background:var(--card);border:1px solid var(--border);border-radius:17px;padding:9px 14px;font-size:14px;line-height:1.5}
+.msg.sent .msg-bubble{background:linear-gradient(135deg,var(--fire),var(--fire2));border-color:transparent;color:#fff}
+.msg-bubble img{max-width:180px;border-radius:10px;display:block;margin-top:4px}
+.msg-time{font-size:10px;color:var(--muted);margin-top:3px;text-align:right}
+.msg.sent .msg-time{text-align:left}
+.chat-input-area{padding:12px 20px;border-top:1px solid var(--border);display:flex;align-items:center;gap:8px;background:var(--deep)}
+.chat-input-area input{border-radius:50px;padding:10px 18px}
+.ic-btn{background:var(--card);border:1.5px solid var(--border);color:var(--muted);width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;cursor:pointer;flex-shrink:0;transition:all .18s}
+.ic-btn:hover{border-color:var(--fire);color:var(--fire)}
+.send-btn{background:linear-gradient(135deg,var(--fire),var(--fire2));border:none;color:#fff;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;cursor:pointer;flex-shrink:0;transition:transform .18s}
+.send-btn:hover{transform:scale(1.1)}
+.chat-placeholder{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--muted);gap:10px}
+.typing-bubble{display:flex;gap:4px;align-items:center;padding:4px}
+.t-dot{width:6px;height:6px;border-radius:50%;background:var(--muted);animation:tdot .8s infinite}
+.t-dot:nth-child(2){animation-delay:.15s}.t-dot:nth-child(3){animation-delay:.3s}
+@keyframes tdot{0%,80%,100%{transform:scale(.7)}40%{transform:scale(1)}}
+
+/* ══ NOTIFICATIONS ══ */
+#tab-notifications{padding:26px 30px;max-width:620px;margin:0 auto}
+#tab-notifications h2{font-size:22px;font-weight:900;letter-spacing:-.5px;margin-bottom:18px}
+.notif-item{display:flex;align-items:flex-start;gap:12px;padding:13px;border-radius:var(--r-lg);background:var(--card);border:1px solid var(--border);margin-bottom:8px;cursor:pointer;transition:border-color .18s}
+.notif-item:hover{border-color:rgba(255,61,90,.3)}
+.notif-item.unread{border-left:3px solid var(--fire)}
+.notif-av{width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,var(--fire),var(--fire2));display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0;overflow:hidden}
+.notif-av img{width:100%;height:100%;object-fit:cover}
+.notif-text{flex:1;font-size:13px;line-height:1.5}
+.notif-text strong{font-weight:800}
+.notif-time{font-size:11px;color:var(--muted);margin-top:2px}
+
+/* ══ MY PROFILE ══ */
+#tab-profile{padding:26px 30px;max-width:680px;margin:0 auto}
+.own-hdr{display:flex;align-items:center;gap:20px;background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);padding:22px;margin-bottom:16px}
+.own-av-wrap{position:relative;cursor:pointer;flex-shrink:0}
+.own-av{width:90px;height:90px;border-radius:50%;background:linear-gradient(135deg,var(--fire),var(--fire2));display:flex;align-items:center;justify-content:center;font-size:38px;border:3px solid var(--fire);overflow:hidden}
+.own-av img{width:100%;height:100%;object-fit:cover}
+.cam-badge{position:absolute;bottom:0;right:0;background:var(--fire);color:#fff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:12px;border:2px solid var(--deep)}
+.own-info h2{font-size:18px;font-weight:900;margin-bottom:3px;letter-spacing:-.3px}
+.own-info p{font-size:12px;color:var(--muted)}
+.section-box{background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);padding:20px;margin-bottom:14px}
+.section-box h3{font-size:14px;font-weight:800;margin-bottom:14px;display:flex;align-items:center;gap:7px}
+
+/* PHOTO UPLOAD */
+.upload-dropzone{border:2px dashed var(--border);border-radius:var(--r-lg);padding:28px;text-align:center;cursor:pointer;transition:all .2s;position:relative;margin-bottom:14px}
+.upload-dropzone:hover,.upload-dropzone.drag-over{border-color:var(--fire);background:rgba(255,61,90,.04)}
+.upload-dropzone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.upload-dropzone .ud-icon{font-size:36px;margin-bottom:8px}
+.upload-dropzone h4{font-size:15px;font-weight:800;margin-bottom:4px}
+.upload-dropzone p{font-size:12px;color:var(--muted)}
+.upload-progress{background:var(--deep);border-radius:50px;height:4px;overflow:hidden;margin-top:8px;display:none}
+.upload-progress-bar{height:100%;background:linear-gradient(90deg,var(--fire),var(--fire2));border-radius:50px;transition:width .3s}
+.photos-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:8px}
+.photo-thumb{aspect-ratio:1;border-radius:var(--r);overflow:hidden;background:var(--deep);border:1.5px dashed var(--border);display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--muted);cursor:pointer;transition:border-color .18s;position:relative}
+.photo-thumb:hover{border-color:var(--fire)}
+.photo-thumb img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0}
+.pt-del{position:absolute;top:4px;right:4px;background:rgba(0,0,0,.75);color:#fff;border:none;border-radius:50%;width:20px;height:20px;font-size:11px;cursor:pointer;display:none;align-items:center;justify-content:center;z-index:10}
+.photo-thumb:hover .pt-del{display:flex}
+.pt-primary-btn{position:absolute;top:4px;left:4px;background:rgba(0,0,0,.75);color:var(--volt);border:1px solid var(--volt);border-radius:50px;font-size:9px;font-weight:700;padding:2px 5px;cursor:pointer;display:none}
+.photo-thumb:hover .pt-primary-btn{display:block}
+.pt-label{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.7);font-size:9px;font-weight:700;padding:3px;text-align:center;color:var(--volt)}
+.vibe-selector{display:flex;flex-wrap:wrap;gap:7px}
+.vs-tag{padding:7px 14px;border-radius:50px;font-size:12px;font-weight:700;background:var(--deep);border:1.5px solid var(--border);cursor:pointer;transition:all .18s}
+.vs-tag.sel{border-color:var(--fire);color:var(--fire);background:rgba(255,61,90,.1)}
+
+/* ══ PREMIUM MODAL ══ */
+.prem-ov{position:fixed;inset:0;background:rgba(0,0,0,.82);backdrop-filter:blur(10px);z-index:900;display:flex;align-items:center;justify-content:center;padding:20px}
+.prem-modal{background:var(--deep);border:1px solid var(--border);border-radius:var(--r-lg);width:100%;max-width:540px;padding:36px;text-align:center;animation:slideUp .3s ease;position:relative}
+.prem-modal h2{font-size:24px;font-weight:900;letter-spacing:-.5px;margin-bottom:6px}
+.prem-modal .sub{color:var(--muted);margin-bottom:24px;font-size:13px}
+.plans{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:22px}
+.plan{background:var(--card);border:2px solid var(--border);border-radius:var(--r-lg);padding:18px 12px;cursor:pointer;transition:all .22s;position:relative}
+.plan:hover,.plan.sel{border-color:var(--fire);background:rgba(255,61,90,.07)}
+.plan.pop{border-color:var(--volt)}
+.plan-pb{position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:var(--volt);color:var(--ink);font-size:9px;font-weight:800;padding:2px 9px;border-radius:50px;white-space:nowrap}
+.plan-lbl{font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.plan-price{font-size:22px;font-weight:900}
+.plan-period{font-size:11px;color:var(--muted);margin-bottom:10px}
+.plan-feat{text-align:left;font-size:11px;color:var(--muted);margin:3px 0;display:flex;gap:4px}
+.plan-feat::before{content:'✓';color:var(--online);font-weight:800}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--border);border-radius:50px;padding:10px 20px;font-size:14px;font-weight:700;z-index:9999;animation:toastIn .3s ease;box-shadow:0 8px 36px rgba(0,0,0,.6);display:flex;align-items:center;gap:8px;white-space:nowrap;max-width:90vw}
+@keyframes toastIn{from{opacity:0;transform:translate(-50%,18px)}to{opacity:1;transform:translate(-50%,0)}}
+.spark-flash{position:fixed;inset:0;pointer-events:none;z-index:9999;display:flex;align-items:center;justify-content:center}
+.spark-star{font-size:100px;animation:sparkPop .65s ease forwards}
+@keyframes sparkPop{0%{transform:scale(0) rotate(-30deg);opacity:1}70%{transform:scale(1.3) rotate(8deg);opacity:1}100%{transform:scale(1) rotate(0);opacity:0}}
+.match-flash{position:fixed;inset:0;background:rgba(255,61,90,.1);z-index:9998;pointer-events:none;animation:flashFade .8s ease forwards}
+@keyframes flashFade{0%{opacity:1}100%{opacity:0}}
+
+@media(max-width:900px){
+  .hero{grid-template-columns:1fr;padding:60px 24px 36px;text-align:center}.card-stack{display:none}
+  .lp-nav{padding:14px 22px}.how{padding:34px 22px}.steps{grid-template-columns:1fr}
+  .sidebar{width:54px}.sb-btn{width:40px;height:40px;font-size:18px}
+  #tab-discover,#tab-matches,#tab-notifications,#tab-profile{padding:15px 12px}
+  .profiles-grid{grid-template-columns:repeat(auto-fill,minmax(158px,1fr));gap:10px}
+  #tab-messages{flex-direction:column}
+  .conv-list{width:100%;border-right:none;border-bottom:1px solid var(--border);max-height:180px}
+  .pmodal{grid-template-columns:1fr}.pmodal-gallery{min-height:200px;border-radius:var(--r-lg) var(--r-lg) 0 0}
+  .plans{grid-template-columns:1fr}.vibe-strip{gap:20px;flex-wrap:wrap}
+  .pay-methods{grid-template-columns:1fr 1fr}
+}
+@media(max-width:480px){
+  .lp-nav-links .btn-ghost{display:none}.hero h1{letter-spacing:-1px}
+  .pay-methods{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════ LANDING ══════════════ -->
+<div id="page-landing">
+  <div class="orb orb1"></div><div class="orb orb2"></div><div class="orb orb3"></div>
+  <nav class="lp-nav">
+    <div class="logo">mapenzi<span>TELE</span></div>
+    <div style="display:flex;gap:10px;align-items:center">
+      <button class="btn btn-ghost btn-sm" onclick="openAuth('login')">Sign In</button>
+      <button class="btn btn-fire btn-sm" onclick="openAuth('signup')">🔥 Join — KES 200</button>
+    </div>
+  </nav>
+  <div class="ticker-wrap">
+    <div class="ticker">
+      <div class="ticker-item"><span>🔥</span>12,400 people online right now</div>
+      <div class="ticker-item"><span>📍</span>Nearest matches shown first</div>
+      <div class="ticker-item"><span>⚡</span>No labels. No pressure.</div>
+      <div class="ticker-item"><span>🔒</span>One-time KES 200 · lifetime access</div>
+      <div class="ticker-item"><span>🔥</span>12,400 people online right now</div>
+      <div class="ticker-item"><span>📍</span>Nearest matches shown first</div>
+      <div class="ticker-item"><span>⚡</span>No labels. No pressure.</div>
+      <div class="ticker-item"><span>🔒</span>One-time KES 200 · lifetime access</div>
+    </div>
+  </div>
+  <section class="hero">
+    <div>
+      <div class="hero-eyebrow"><div class="e-dot"></div> Honest · Bold · Judgment-free</div>
+      <h1>Life's short.<em><span class="grad-text">Stop waiting.</span></em></h1>
+      <p class="hero-sub">mapenziTELE connects real people near you — no games, no pretending. Just good vibes, photo-verified profiles, and real-time chat.</p>
+      <div class="price-badge">🔓 Full access for just <span class="amt">&nbsp;KES 200</span>&nbsp;— one time, forever</div>
+      <div class="mood-row">
+        <div class="mood-tag on">🔥 Spontaneous</div>
+        <div class="mood-tag">😌 Just Exploring</div>
+        <div class="mood-tag">💫 Dry Spell</div>
+        <div class="mood-tag">🌙 Situationship</div>
+        <div class="mood-tag">🎲 No Strings</div>
+      </div>
+      <div class="hero-cta">
+        <button class="btn btn-fire" style="font-size:15px;padding:14px 32px" onclick="openAuth('signup')">🔥 Join for KES 200</button>
+        <button class="btn btn-ghost" onclick="openAuth('login')">Already in? →</button>
+      </div>
+      <div class="hero-note">📍 Location-sorted matches &nbsp;·&nbsp; <span>Real profiles only</span> &nbsp;·&nbsp; 🔒 Safe & private</div>
+      <div class="vibe-strip">
+        <div class="vibe-stat"><div class="num grad-text">1.8M+</div><div class="lbl">Members</div></div>
+        <div class="vibe-stat"><div class="num grad-text">54K</div><div class="lbl">Today's Connects</div></div>
+        <div class="vibe-stat"><div class="num grad-text">47</div><div class="lbl">Countries</div></div>
+      </div>
+    </div>
+    <div class="card-stack">
+      <div class="stack-card sc-1"><div class="sc-face">👩🏾</div><div class="sc-info"><div class="sc-name">Amara, 26</div><div class="sc-vibe">🔥 Available · 1.2km away</div></div></div>
+      <div class="stack-card sc-2"><div class="sc-face">👨🏾</div><div class="sc-info"><div class="sc-name">Kwame, 30</div><div class="sc-vibe">😌 Exploring · 3km</div></div></div>
+      <div class="stack-card sc-3"><div class="sc-face">👩🏽</div><div class="sc-info"><div class="sc-name">Zara, 24</div><div class="sc-vibe">✨ Nearby · 5km</div></div></div>
+    </div>
+  </section>
+  <section class="how">
+    <h2>How it <span class="grad-text">works</span></h2>
+    <div class="steps">
+      <div class="step"><div class="step-num">01</div><h3>Pay KES 200 once</h3><p>One payment unlocks everything forever — discover, chat, share photos. No subscriptions, no surprises.</p></div>
+      <div class="step"><div class="step-num">02</div><h3>We find people near you</h3><p>Your GPS sorts the closest matches first. Same neighbourhood? They appear at the top.</p></div>
+      <div class="step"><div class="step-num">03</div><h3>Connect your way</h3><p>Both people spark → match → chat in real-time with photos, voice, and emoji. Your terms.</p></div>
+    </div>
+  </section>
+</div>
+
+<!-- ══════════════ AUTH ══════════════ -->
+<div class="modal-overlay hidden" id="auth-overlay" onclick="if(event.target===this)closeAuth()">
+  <div class="modal hidden" id="modal-login">
+    <button class="modal-close" onclick="closeAuth()">✕</button>
+    <h2>Welcome back 🔥</h2><p class="sub">Your next vibe is waiting</p>
+    <div class="form-group"><label>Email</label><input type="email" id="l-email" placeholder="you@email.com"></div>
+    <div class="form-group"><label>Password</label><input type="password" id="l-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <div class="field-error hidden" id="l-err"></div>
+    <button class="btn btn-fire" style="width:100%;justify-content:center;margin-top:8px" id="l-btn" onclick="doLogin()">Let's Go 🔥</button>
+    <div class="auth-switch">New here? <a onclick="openAuth('signup')">Join for KES 200 →</a></div>
+  </div>
+  <div class="modal hidden" id="modal-signup">
+    <button class="modal-close" onclick="closeAuth()">✕</button>
+    <h2>Create your profile ✨</h2><p class="sub">One step away — KES 200 unlocks everything</p>
+    <div class="form-row">
+      <div class="form-group"><label>Name / Nickname</label><input type="text" id="s-name" placeholder="What to call you?"></div>
+      <div class="form-group"><label>Age</label><input type="number" id="s-age" placeholder="25" min="18" max="99"></div>
+    </div>
+    <div class="form-group"><label>Email</label><input type="email" id="s-email" placeholder="you@email.com"></div>
+    <div class="form-group"><label>Password</label><input type="password" id="s-pass" placeholder="Min 6 characters"></div>
+    <div class="form-group"><label>I am</label>
+      <div class="sel-row">
+        <div class="sel-btn active" onclick="selG(this,'Woman')">👩 Woman</div>
+        <div class="sel-btn" onclick="selG(this,'Man')">👨 Man</div>
+        <div class="sel-btn" onclick="selG(this,'Other')">🌈 Other</div>
+      </div>
+    </div>
+    <div class="form-group"><label>Looking for</label>
+      <div class="sel-row">
+        <div class="sel-btn active" onclick="selL(this,'Men')">Men</div>
+        <div class="sel-btn" onclick="selL(this,'Women')">Women</div>
+        <div class="sel-btn" onclick="selL(this,'Everyone')">Everyone</div>
+      </div>
+    </div>
+    <div class="form-group"><label>Right now I want</label>
+      <div class="sel-row">
+        <div class="sel-btn active" onclick="selM(this,'Spontaneous')">🔥 Spontaneous</div>
+        <div class="sel-btn" onclick="selM(this,'Exploring')">😌 Exploring</div>
+        <div class="sel-btn" onclick="selM(this,'No Strings')">🎲 No Strings</div>
+        <div class="sel-btn" onclick="selM(this,'Situationship')">🌙 Situation</div>
+      </div>
+    </div>
+    <div class="field-error hidden" id="s-err"></div>
+    <button class="btn btn-fire" style="width:100%;justify-content:center;margin-top:8px" id="s-btn" onclick="proceedToPay()">Continue to Payment →</button>
+    <div class="auth-switch">Already paid? <a onclick="openAuth('login')">Sign in →</a></div>
+  </div>
+</div>
+
+<!-- ══════════════ PAYMENT ══════════════ -->
+<div class="modal-overlay hidden" id="pay-overlay">
+  <div class="pay-modal">
+    <button class="modal-close" onclick="closePay()">✕</button>
+    <div style="font-size:40px;margin-bottom:8px">🔓</div>
+    <h2>One-time Access Fee</h2><p class="sub" style="color:var(--muted);font-size:13px;margin-bottom:16px">Pay once · Access forever · No recurring charges</p>
+    <div class="pay-amount grad-text">KES 200</div>
+    <div class="pay-period">Lifetime access · All features unlocked</div>
+    <div class="pay-perks">
+      <div class="pay-perk">Up to 6 profile photos</div>
+      <div class="pay-perk">Unlimited sparks & matches</div>
+      <div class="pay-perk">Real-time chat with photo sharing</div>
+      <div class="pay-perk">GPS-sorted nearby discovery</div>
+      <div class="pay-perk">Block & report — full privacy control</div>
+    </div>
+    <p style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Choose Payment Method</p>
+    <div class="pay-methods">
+      <div class="pay-method sel" id="pm-mpesa" onclick="selPM('mpesa')"><div class="icon">📱</div><div class="name">M-Pesa</div><div class="hint">STK Push</div></div>
+      <div class="pay-method" id="pm-card" onclick="selPM('card')"><div class="icon">💳</div><div class="name">Card</div><div class="hint">Visa / Mastercard</div></div>
+      <div class="pay-method" id="pm-airtel" onclick="selPM('airtel')"><div class="icon">📶</div><div class="name">Airtel Money</div><div class="hint">Mobile money</div></div>
+      <div class="pay-method" id="pm-bank" onclick="selPM('bank')"><div class="icon">🏦</div><div class="name">Bank Transfer</div><div class="hint">Instant EFT</div></div>
+    </div>
+    <div class="pay-input-wrap show" id="fields-mpesa">
+      <div class="form-group"><label>M-Pesa Phone Number</label><input type="tel" id="mpesa-phone" placeholder="e.g. 0712 345 678"></div>
+      <p style="font-size:11px;color:var(--muted);margin-top:5px">📲 STK push will be sent. Paybill: <strong style="color:var(--volt)">123456</strong> · Account: <strong style="color:var(--volt)">MAPENZITELE</strong></p>
+    </div>
+    <div class="pay-input-wrap" id="fields-card">
+      <div class="form-group"><label>Card Number</label><input type="text" id="card-num" placeholder="1234 5678 9012 3456" maxlength="19" oninput="fmtCard(this)"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Expiry</label><input type="text" id="card-exp" placeholder="MM/YY" maxlength="5"></div>
+        <div class="form-group"><label>CVV</label><input type="text" id="card-cvv" placeholder="123" maxlength="3"></div>
+      </div>
+    </div>
+    <div class="pay-input-wrap" id="fields-airtel">
+      <div class="form-group"><label>Airtel Number</label><input type="tel" id="airtel-phone" placeholder="e.g. 0733 345 678"></div>
+      <p style="font-size:11px;color:var(--muted);margin-top:5px">You'll receive a prompt on your Airtel line.</p>
+    </div>
+    <div class="pay-input-wrap" id="fields-bank">
+      <p style="font-size:13px;color:var(--text);line-height:1.8">Transfer <strong style="color:var(--volt)">KES 200</strong> to:<br>Bank: <strong>Equity Bank</strong><br>Account: <strong>0123456789</strong><br>Name: <strong>MapenziTELE Ltd</strong><br><span style="color:var(--muted);font-size:11px">Use your email as reference. Access in 5 min.</span></p>
+    </div>
+    <div class="pay-status" id="pay-status"></div>
+    <div class="poll-progress" id="poll-progress"><div class="poll-bar"></div></div>
+    <button class="btn btn-volt" style="width:100%;justify-content:center;font-size:15px;padding:14px;margin-top:12px" id="pay-btn" onclick="doPayment()">Pay KES 200 →</button>
+    <p style="font-size:11px;color:var(--muted);margin-top:8px">🔒 Secured · No recurring charges</p>
+  </div>
+</div>
+
+<!-- ══════════════ APP ══════════════ -->
+<div id="page-app" class="hidden">
+  <nav class="sidebar">
+    <div class="sb-logo">mT</div>
+    <button class="sb-btn active" id="sb-discover" onclick="showTab('discover',this)" title="Discover">🔥</button>
+    <button class="sb-btn" id="sb-matches" onclick="showTab('matches',this)" title="Matches">💥</button>
+    <button class="sb-btn" id="sb-messages" onclick="showTab('messages',this)" title="Messages">💬<span class="sb-notif hidden" id="msg-badge">0</span></button>
+    <div class="sb-div"></div>
+    <button class="sb-btn" id="sb-notifications" onclick="showTab('notifications',this)" title="Notifications">🔔<span class="sb-notif hidden" id="notif-badge">0</span></button>
+    <button class="sb-btn" onclick="openPremium()" title="VIP">👑</button>
+    <div class="sb-div"></div>
+    <div onclick="showTab('profile',document.getElementById('sb-profile'))" style="cursor:pointer" title="Profile">
+      <div id="sb-self-av" style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--fire),var(--fire2));display:flex;align-items:center;justify-content:center;font-size:18px;border:2px solid var(--border)">🙂</div>
+    </div>
+    <button class="sb-btn hidden" id="sb-profile"></button>
+  </nav>
+  <main class="app-main">
+
+    <!-- DISCOVER -->
+    <div id="tab-discover">
+      <div class="disc-header">
+        <h2>Who's Out Tonight 🔥</h2>
+        <div class="filter-bar">
+          <div class="chip on" onclick="setFilter('all',this)">All</div>
+          <div class="chip" onclick="setFilter('nearby',this)">📍 Nearby</div>
+          <div class="chip" onclick="setFilter('online',this)">⚡ Online</div>
+          <div class="chip" onclick="setFilter('new',this)">🆕 New</div>
+        </div>
+      </div>
+      <div class="online-bar"><div class="online-pulse"></div><span id="online-count">Loading…</span></div>
+      <div class="geo-bar" id="geo-bar" onclick="requestGeo()"><div class="geo-dot"></div><span id="geo-status">📍 Enable location for nearby matches</span></div>
+      <div id="nearby-section" class="hidden">
+        <div class="section-lbl">📍 Closest to You</div>
+        <div class="profiles-grid" id="nearby-grid"></div>
+        <div class="section-lbl" style="margin-top:22px">🌍 Everyone Else</div>
+      </div>
+      <div class="profiles-grid" id="profiles-grid"></div>
+      <div class="empty-state hidden" id="disc-empty"><div class="es-icon">🔍</div><p>No more profiles right now.<br>Check back soon!</p></div>
+    </div>
+
+    <!-- MATCHES -->
+    <div id="tab-matches" class="hidden">
+      <div class="matches-hero"><div class="icon">💥</div><div><h2>Your Connections</h2><p>Mutual sparks — both said yes. Make your move.</p></div></div>
+      <div class="matches-wrap" id="matches-grid"></div>
+      <div class="empty-state hidden" id="match-empty"><div class="es-icon">💫</div><p>No matches yet.<br>Go spark someone! 🔥</p></div>
+    </div>
+
+    <!-- MESSAGES -->
+    <div id="tab-messages" class="hidden" style="height:100%">
+      <div class="conv-list">
+        <div class="conv-list-hdr">Chats 💬</div>
+        <div class="conv-search-wrap"><input placeholder="🔍 Search…" oninput="filterConvs(this.value)" id="conv-search"></div>
+        <div id="conv-items"></div>
+      </div>
+      <div id="chat-panel" style="flex:1;display:flex">
+        <div class="chat-placeholder"><div style="font-size:48px;opacity:.22">💬</div><p style="font-size:16px;font-weight:800">Select a conversation</p><p style="font-size:12px">Your matches are waiting</p></div>
+      </div>
+    </div>
+
+    <!-- NOTIFICATIONS -->
+    <div id="tab-notifications" class="hidden">
+      <h2>Activity 🔔</h2>
+      <div id="notif-list"></div>
+      <div class="empty-state hidden" id="notif-empty"><div class="es-icon">🔔</div><p>No activity yet.<br>Go spark someone!</p></div>
+    </div>
+
+    <!-- MY PROFILE -->
+    <div id="tab-profile" class="hidden">
+      <div class="own-hdr">
+        <div class="own-av-wrap" onclick="document.getElementById('av-inp').click()">
+          <div class="own-av" id="own-av">🙂</div>
+          <div class="cam-badge">📷</div>
+          <input type="file" id="av-inp" accept="image/*" style="display:none" onchange="uploadAvatar(this)">
+        </div>
+        <div class="own-info">
+          <h2 id="prof-name-display">Loading…</h2>
+          <p id="prof-meta-display">Complete your profile</p>
+          <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+            <span class="badge badge-volt">✓ Paid Member</span>
+            <span class="badge badge-online">● Online</span>
+            <span class="badge badge-fire" id="prof-mood-badge">🔥 Spontaneous</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-box">
+        <h3>📸 My Photos <span style="font-size:10px;color:var(--muted);font-weight:400">up to 6 · first = profile photo</span></h3>
+        <div class="upload-dropzone" id="drop-zone">
+          <input type="file" accept="image/*" multiple id="bulk-inp" onchange="uploadPhotos(this.files)">
+          <div class="ud-icon">📤</div>
+          <h4>Drop photos here or tap to browse</h4>
+          <p>JPG, PNG, WEBP · Max 10MB each · Up to 6 photos</p>
+        </div>
+        <div class="upload-progress" id="up-prog"><div class="upload-progress-bar" id="up-bar" style="width:0%"></div></div>
+        <div class="photos-grid" id="photos-grid"></div>
+        <p style="font-size:11px;color:var(--muted);margin-top:6px">⭐ First photo = profile photo · hover to delete or set as main</p>
+      </div>
+
+      <div class="section-box">
+        <h3>✏️ Edit Profile</h3>
+        <div class="form-row" style="margin-bottom:12px">
+          <div class="form-group"><label>Name</label><input type="text" id="e-name" placeholder="Your name"></div>
+          <div class="form-group"><label>Age</label><input type="number" id="e-age" min="18" max="99"></div>
+        </div>
+        <div class="form-row" style="margin-bottom:12px">
+          <div class="form-group"><label>City</label><input type="text" id="e-city" placeholder="Nairobi, Lagos…"></div>
+          <div class="form-group"><label>Occupation</label><input type="text" id="e-job" placeholder="Optional"></div>
+        </div>
+        <div class="form-group" style="margin-bottom:12px"><label>Tagline</label><input type="text" id="e-tagline" placeholder="Bold and honest…"></div>
+        <div class="form-group" style="margin-bottom:12px"><label>About You</label><textarea id="e-bio" rows="3" placeholder="Keep it real…"></textarea></div>
+        <div class="form-group" style="margin-bottom:14px"><label>Right now I'm looking for</label>
+          <select id="e-mood">
+            <option>🔥 Spontaneous Connection</option>
+            <option>😌 Just Exploring</option>
+            <option>🎲 No Strings Attached</option>
+            <option>🌙 Situationship</option>
+            <option>💫 Ending a Dry Spell</option>
+            <option>🎯 Short-Term Fun</option>
+          </select>
+        </div>
+        <button class="btn btn-fire" id="save-prof-btn" onclick="saveProfile()">Save Profile</button>
+      </div>
+
+      <div class="section-box">
+        <h3>⚡ My Vibes</h3>
+        <div class="vibe-selector" id="vibe-selector">
+          <div class="vs-tag sel">🎵 Music</div><div class="vs-tag">✈️ Travel</div>
+          <div class="vs-tag sel">🍾 Nightlife</div><div class="vs-tag">💃 Dancing</div>
+          <div class="vs-tag">🏖️ Beach Vibes</div><div class="vs-tag sel">🍳 Cooking Together</div>
+          <div class="vs-tag">🎬 Movie Nights</div><div class="vs-tag">🌿 Nature Walks</div>
+          <div class="vs-tag">🎲 Spontaneous Plans</div><div class="vs-tag">🥂 Wining & Dining</div>
+          <div class="vs-tag">😂 Good Banter</div><div class="vs-tag">🎤 Live Music</div>
+        </div>
+      </div>
+
+      <div class="section-box">
+        <h3>⚙️ Settings</h3>
+        <div style="display:flex;flex-direction:column;gap:9px">
+          <button class="btn btn-ghost btn-sm" style="width:fit-content" onclick="requestGeo()">📍 Update Location</button>
+          <button class="btn btn-ghost btn-sm" style="width:fit-content" onclick="openPremium()">👑 Upgrade to VIP</button>
+          <button class="btn btn-ghost btn-sm" style="width:fit-content;border-color:#ff6b6b;color:#ff6b6b" onclick="doLogout()">🚪 Sign Out</button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- PROFILE DETAIL -->
+<div class="pmodal-ov hidden" id="pmodal-ov" onclick="if(event.target===this)closePModal()">
+  <div class="pmodal" id="pmodal-inner"></div>
+</div>
+
+<!-- PREMIUM -->
+<div class="prem-ov hidden" id="prem-ov" onclick="if(event.target===this)closePremium()">
+  <div class="prem-modal">
+    <button class="modal-close" onclick="closePremium()">✕</button>
+    <div style="font-size:40px;margin-bottom:8px">👑</div>
+    <h2>Go <span class="grad-text">VIP</span></h2>
+    <p class="sub">On top of your KES 200 access — supercharge your experience</p>
+    <div class="plans">
+      <div class="plan" onclick="selPlan(this)"><div class="plan-lbl">Boost</div><div class="plan-price grad-text">KES 500</div><div class="plan-period">/ month</div><div class="plan-feat">Unlimited sparks</div><div class="plan-feat">See who liked you</div><div class="plan-feat">5 Super Sparks/day</div></div>
+      <div class="plan pop sel" onclick="selPlan(this)"><div class="plan-pb">🔥 Popular</div><div class="plan-lbl">Hot</div><div class="plan-price grad-text">KES 999</div><div class="plan-period">/ month</div><div class="plan-feat">Everything in Boost</div><div class="plan-feat">Weekly profile boost</div><div class="plan-feat">Read receipts</div><div class="plan-feat">Priority discovery</div></div>
+      <div class="plan" onclick="selPlan(this)"><div class="plan-lbl">Elite</div><div class="plan-price grad-text">KES 1,999</div><div class="plan-period">/ month</div><div class="plan-feat">Everything in Hot</div><div class="plan-feat">Message anyone</div><div class="plan-feat">VIP badge</div><div class="plan-feat">Incognito mode</div></div>
+    </div>
+    <button class="btn btn-fire" style="width:100%;justify-content:center;font-size:14px;padding:13px" onclick="subVIP()">Start Free VIP Trial 🔥</button>
+    <p style="font-size:11px;color:var(--muted);margin-top:8px">Cancel anytime · M-Pesa & Card accepted</p>
+  </div>
+</div>
+
+<script>
+/* ══ API LAYER ══════════════════════════════════════════ */
+const API = '/api';
+let TOKEN = localStorage.getItem('mt_token');
+let ME = null;
+let socket = null;
+
+async function api(method, path, body, isFile=false) {
+  const headers = { Authorization: `Bearer ${TOKEN}` };
+  if (!isFile) headers['Content-Type'] = 'application/json';
+  const res = await fetch(API + path, {
+    method,
+    headers,
+    body: isFile ? body : (body ? JSON.stringify(body) : undefined)
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Request failed');
+  return data;
+}
+
+/* ══ STATE ══════════════════════════════════════════════ */
+let userGender='Woman', userLooking='Men', userMood='Spontaneous';
+let activePayMethod = 'mpesa';
+let pendingSignup = null;
+let checkoutRequestId = null;
+let pollInterval = null;
+let activeConvMatchId = null;
+let userLat=null, userLng=null;
+let allProfiles = [];
+let activeFilter = 'all';
+let myPhotos = []; // [{id,url,is_primary,sort_order}]
+
+const EMOJIS_MAP = {Woman:'👩🏾',Man:'👨🏾',Other:'🌈'};
+
+/* ══ SOCKET.IO ══════════════════════════════════════════ */
+function initSocket() {
+  socket = io();
+  socket.emit('user:online', ME.id);
+
+  socket.on('message:receive', (msg) => {
+    if (activeConvMatchId === msg.matchId) {
+      appendMessage(msg, false);
+    }
+    showToast('💬 New message from ' + (msg.sender_name || 'someone'));
+    updateBadge('msg-badge', true);
+  });
+
+  socket.on('notification:new', (notif) => {
+    showToast(notif.type === 'match' ? '💥 New match!' : '🔥 Someone sparked you!');
+    updateBadge('notif-badge', true);
+  });
+
+  socket.on('typing:show', ({ senderId }) => {
+    showTypingIndicator(senderId);
+  });
+  socket.on('typing:hide', ({ senderId }) => {
+    hideTypingIndicator(senderId);
+  });
+
+  socket.on('payment:confirmed', ({ userId }) => {
+    if (ME && ME.id === userId) {
+      ME.is_paid = true;
+      showToast('✅ Payment confirmed! Welcome to mapenziTELE 🔥');
+    }
+  });
+}
+
+/* ══ AUTH ════════════════════════════════════════════════ */
+function openAuth(w) {
+  document.getElementById('auth-overlay').classList.remove('hidden');
+  ['login','signup'].forEach(m => document.getElementById('modal-'+m).classList.add('hidden'));
+  document.getElementById('modal-'+w).classList.remove('hidden');
+}
+function closeAuth() { document.getElementById('auth-overlay').classList.add('hidden'); }
+function selG(el,v){el.parentNode.querySelectorAll('.sel-btn').forEach(b=>b.classList.remove('active'));el.classList.add('active');userGender=v}
+function selL(el,v){el.parentNode.querySelectorAll('.sel-btn').forEach(b=>b.classList.remove('active'));el.classList.add('active');userLooking=v}
+function selM(el,v){el.parentNode.querySelectorAll('.sel-btn').forEach(b=>b.classList.remove('active'));el.classList.add('active');userMood=v}
+
+async function doLogin() {
+  const email = document.getElementById('l-email').value.trim();
+  const pass = document.getElementById('l-pass').value;
+  const err = document.getElementById('l-err');
+  const btn = document.getElementById('l-btn');
+  if (!email || !pass) { showFieldErr(err, 'Fill in all fields'); return; }
+  btn.innerHTML = '<span class="spinner"></span> Signing in…'; btn.disabled = true;
+  try {
+    const data = await api('POST', '/auth/login', { email, password: pass });
+    TOKEN = data.token; ME = data.user;
+    localStorage.setItem('mt_token', TOKEN);
+    closeAuth(); launchApp();
+  } catch(e) { showFieldErr(err, e.message); btn.innerHTML = "Let's Go 🔥"; btn.disabled = false; }
+}
+
+async function proceedToPay() {
+  const n=document.getElementById('s-name').value.trim();
+  const a=document.getElementById('s-age').value;
+  const e=document.getElementById('s-email').value.trim();
+  const p=document.getElementById('s-pass').value;
+  const err = document.getElementById('s-err');
+  if(!n||!a||!e||!p){showFieldErr(err,'Fill in all fields');return}
+  if(parseInt(a)<18){showFieldErr(err,'Must be 18 or older');return}
+  if(p.length<6){showFieldErr(err,'Password must be at least 6 characters');return}
+  const btn = document.getElementById('s-btn');
+  btn.innerHTML = '<span class="spinner"></span> Registering…'; btn.disabled = true;
+  try {
+    const data = await api('POST', '/auth/register', { name:n, age:parseInt(a), email:e, password:p, gender:userGender, looking_for:userLooking, mood:userMood });
+    TOKEN = data.token; ME = data.user;
+    localStorage.setItem('mt_token', TOKEN);
+    closeAuth();
+    document.getElementById('pay-overlay').classList.remove('hidden');
+  } catch(e) { showFieldErr(err, e.message); btn.innerHTML='Continue to Payment →'; btn.disabled=false; }
+}
+
+function closePay() {
+  document.getElementById('pay-overlay').classList.add('hidden');
+  clearInterval(pollInterval);
+  const s=document.getElementById('pay-status');s.className='pay-status';s.textContent='';
+  document.getElementById('poll-progress').style.display='none';
+  document.getElementById('pay-btn').disabled=false;document.getElementById('pay-btn').textContent='Pay KES 200 →';
+}
+
+function selPM(m) {
+  activePayMethod=m;
+  ['mpesa','card','airtel','bank'].forEach(k=>{
+    document.getElementById('pm-'+k).classList.toggle('sel',k===m);
+    document.getElementById('fields-'+k).classList.toggle('show',k===m);
+  });
+}
+function fmtCard(inp){let v=inp.value.replace(/\D/g,'').substring(0,16);inp.value=v.replace(/(.{4})/g,'$1 ').trim();}
+
+async function doPayment() {
+  const btn=document.getElementById('pay-btn');
+  const status=document.getElementById('pay-status');
+  const poll=document.getElementById('poll-progress');
+
+  if (activePayMethod === 'mpesa') {
+    const phone = document.getElementById('mpesa-phone').value.trim();
+    if(!phone){showToast('Enter your M-Pesa number');return}
+    btn.innerHTML='<span class="spinner spinner-dark"></span> Sending STK push…'; btn.disabled=true;
+    try {
+      const res = await api('POST', '/payment/mpesa/stkpush', { phone });
+      checkoutRequestId = res.checkoutRequestId;
+      status.className='pay-status processing';
+      status.innerHTML='<span class="spinner"></span> STK Push sent — enter your M-Pesa PIN on your phone';
+      poll.style.display='block';
+      // Poll for payment confirmation
+      let attempts=0;
+      pollInterval=setInterval(async()=>{
+        attempts++;
+        if(attempts>20){clearInterval(pollInterval);status.className='pay-status error';status.textContent='Timed out. Try again.';btn.disabled=false;btn.textContent='Pay KES 200 →';poll.style.display='none';return}
+        try{
+          const st = await api('GET',`/payment/mpesa/status/${checkoutRequestId}`);
+          if(st.status==='completed'){clearInterval(pollInterval);completeAccess();}
+          else if(st.status==='failed'){clearInterval(pollInterval);status.className='pay-status error';status.textContent='Payment failed. Try again.';btn.disabled=false;btn.textContent='Pay KES 200 →';poll.style.display='none';}
+        }catch(_){}
+      }, 3000);
+    } catch(e) { status.className='pay-status error'; status.textContent=e.message; btn.disabled=false; btn.innerHTML='Pay KES 200 →'; }
+
+  } else if (activePayMethod === 'bank') {
+    // Bank transfer: manual confirmation
+    status.className='pay-status processing'; status.textContent='Transfer KES 200 to the account above. Access granted within 5 minutes.';
+    btn.innerHTML='Waiting for transfer…'; btn.disabled=true;
+  } else {
+    // Card / Airtel: record payment (in production connect to actual gateway)
+    btn.innerHTML='<span class="spinner spinner-dark"></span> Processing…'; btn.disabled=true;
+    try {
+      await api('POST', '/payment/manual', { method: activePayMethod });
+      completeAccess();
+    } catch(e) { status.className='pay-status error'; status.textContent=e.message; btn.disabled=false; btn.textContent='Pay KES 200 →'; }
+  }
+}
+
+function completeAccess() {
+  const s=document.getElementById('pay-status');
+  s.className='pay-status success'; s.textContent='✅ Payment confirmed! Welcome to mapenziTELE!';
+  document.getElementById('poll-progress').style.display='none';
+  setTimeout(()=>{ closePay(); ME.is_paid=true; launchApp(); showToast('🎉 Welcome! You\'re in 🔥'); }, 1500);
+}
+
+async function doLogout() {
+  try { await api('POST', '/auth/logout'); } catch(_) {}
+  TOKEN=null; ME=null; localStorage.removeItem('mt_token');
+  if(socket) socket.disconnect();
+  document.getElementById('page-app').classList.add('hidden');
+  document.getElementById('page-landing').style.display='';
+  showToast('See you soon 👋');
+}
+
+/* ══ APP LAUNCH ═════════════════════════════════════════ */
+async function launchApp() {
+  document.getElementById('page-landing').style.display='none';
+  document.getElementById('page-app').classList.remove('hidden');
+  // Load full me
+  try { ME = await api('GET','/auth/me'); } catch(_) {}
+  populateProfile();
+  initSocket();
+  loadDiscover();
+  loadMatches();
+  loadConversations();
+  loadNotifications();
+  setTimeout(requestGeo, 600);
+  setInterval(()=>{
+    const n=(1700+Math.floor(Math.random()*400)).toLocaleString();
+    document.getElementById('online-count').textContent=n+' people online'+( userLat?' · sorted by distance':'');
+  },6000);
+}
+
+// Auto-login if token present
+window.addEventListener('DOMContentLoaded', async () => {
+  if(TOKEN) {
+    try {
+      ME = await api('GET','/auth/me');
+      if(ME && ME.is_paid) { launchApp(); return; }
+      else if(ME) { document.getElementById('pay-overlay').classList.remove('hidden'); return; }
+    } catch(_) { localStorage.removeItem('mt_token'); TOKEN=null; }
+  }
+  // Drop zone drag events
+  const dz=document.getElementById('drop-zone');
+  if(dz){
+    dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag-over')});
+    dz.addEventListener('dragleave',()=>dz.classList.remove('drag-over'));
+    dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('drag-over');uploadPhotos(e.dataTransfer.files)});
+  }
+  // Vibe tag toggles
+  document.querySelectorAll('.vs-tag').forEach(t=>t.addEventListener('click',()=>t.classList.toggle('sel')));
+});
+
+/* ══ GEOLOCATION ════════════════════════════════════════ */
+function requestGeo() {
+  if(!navigator.geolocation){document.getElementById('geo-status').textContent='Location not supported';return}
+  document.getElementById('geo-status').textContent='📍 Getting your location…';
+  navigator.geolocation.getCurrentPosition(async pos=>{
+    userLat=pos.coords.latitude; userLng=pos.coords.longitude;
+    try { await api('PUT','/users/me/location',{lat:userLat,lng:userLng}); } catch(_){}
+    const gb=document.getElementById('geo-bar');
+    gb.style.background='rgba(57,255,126,.1)';gb.style.borderColor='rgba(57,255,126,.3)';gb.style.color='var(--online)';
+    document.getElementById('geo-status').textContent='📍 Location active — showing nearby first';
+    renderProfiles(allProfiles);
+    showToast('📍 Location set! Nearest profiles shown first.');
+  },()=>{document.getElementById('geo-status').textContent='📍 Location denied — showing all members'});
+}
+
+function haversine(la1,ln1,la2,ln2){
+  const R=6371,dLa=(la2-la1)*Math.PI/180,dLn=(ln2-ln1)*Math.PI/180;
+  const a=Math.sin(dLa/2)**2+Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(dLn/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+function fmtDist(km){if(km<1)return Math.round(km*1000)+'m';if(km<10)return km.toFixed(1)+'km';return Math.round(km)+'km';}
+
+/* ══ TABS ════════════════════════════════════════════════ */
+function showTab(name,btn) {
+  ['discover','matches','messages','notifications','profile'].forEach(t=>document.getElementById('tab-'+t).classList.add('hidden'));
+  document.querySelectorAll('.sb-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.remove('hidden');
+  if(btn)btn.classList.add('active');
+  if(name==='notifications'){document.getElementById('notif-badge').classList.add('hidden');loadNotifications();}
+  if(name==='messages')document.getElementById('msg-badge').classList.add('hidden');
+}
+function updateBadge(id, show) {
+  const el=document.getElementById(id);
+  if(!el)return;
+  if(show){el.classList.remove('hidden');}
+}
+
+/* ══ DISCOVER ════════════════════════════════════════════ */
+async function loadDiscover() {
+  document.getElementById('profiles-grid').innerHTML='<div style="color:var(--muted);padding:20px">Loading profiles…</div>';
+  try {
+    allProfiles = await api('GET','/users/discover');
+    renderProfiles(allProfiles);
+    document.getElementById('online-count').textContent=allProfiles.filter(p=>p.is_online).length+' online of '+allProfiles.length+' profiles';
+  } catch(e) { document.getElementById('profiles-grid').innerHTML='<div style="color:var(--muted);padding:20px">'+e.message+'</div>'; }
+}
+
+function setFilter(f,el){
+  activeFilter=f;
+  document.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));
+  el.classList.add('on');
+  let filtered=allProfiles;
+  if(f==='nearby'&&userLat) filtered=allProfiles.filter(p=>p.lat&&haversine(userLat,userLng,p.lat,p.lng)<50);
+  if(f==='online') filtered=allProfiles.filter(p=>p.is_online);
+  renderProfiles(filtered);
+}
+
+function renderProfiles(people, gridId='profiles-grid') {
+  if(userLat){
+    people=[...people].map(p=>({...p,_dist:p.lat?haversine(userLat,userLng,p.lat,p.lng):9999})).sort((a,b)=>a._dist-b._dist);
+    const nearby=people.filter(p=>p._dist<50);
+    const far=people.filter(p=>p._dist>=50);
+    if(nearby.length>0&&gridId==='profiles-grid'){
+      document.getElementById('nearby-section').classList.remove('hidden');
+      renderGrid(nearby,'nearby-grid');
+      renderGrid(far,'profiles-grid');
+      return;
+    }
+  }
+  document.getElementById('nearby-section').classList.add('hidden');
+  renderGrid(people,gridId);
+}
+
+function renderGrid(people, gridId) {
+  const grid=document.getElementById(gridId);if(!grid)return;
+  if(!people.length){grid.innerHTML='';return;}
+  grid.innerHTML=people.map(p=>{
+    const dist=userLat&&p.lat?fmtDist(haversine(userLat,userLng,p.lat,p.lng)):null;
+    const photo=p.photos&&p.photos.length?p.photos.find(ph=>ph.is_primary)||p.photos[0]:null;
+    const distStr=dist?'📍 '+p.city+' · '+dist:(p.city||'');
+    const isNearby=userLat&&p.lat&&haversine(userLat,userLng,p.lat,p.lng)<20;
+    return `<div class="pcard" onclick="openPModal('${p.id}')">
+      <div class="pcard-face">
+        ${photo?`<img src="${photo.url}" alt="${p.name}">`:'<span class="fe">'+(EMOJIS_MAP[p.gender]||'👤')+'</span>'}
+        ${isNearby?'<div class="nearby-chip">📍 Near You</div>':''}
+        <div class="pcard-pills">
+          <span class="ppill av">${p.is_online?'⚡ Online':'Recently active'}</span>
+          ${p.is_vip?'<span class="ppill vip">👑 VIP</span>':''}
+        </div>
+      </div>
+      <div class="pcard-body">
+        <div class="pcard-name-row">
+          <span class="pcard-name">${p.name}, ${p.age}</span>
+          ${p.is_online?'<span class="online-dot"></span>':''}
+          ${p.is_verified?'<span style="font-size:11px;color:var(--lilac)">✓</span>':''}
+        </div>
+        <div class="pcard-meta">${distStr}</div>
+        <div class="pcard-tl">${p.tagline||p.mood||''}</div>
+        ${p.mood?`<div style="margin-top:5px"><span class="badge badge-fire" style="font-size:9px">${p.mood}</span></div>`:''}
+      </div>
+      <div class="pcard-acts">
+        <button class="act" title="Pass" onclick="event.stopPropagation();showToast('Passed 👋')">✕</button>
+        <button class="act like" title="Spark" onclick="event.stopPropagation();doSpark('${p.id}','${p.name}','like')">🔥</button>
+        <button class="act spark" title="Super Spark" onclick="event.stopPropagation();doSpark('${p.id}','${p.name}','super')">⚡</button>
+        <button class="act msg" title="Message" onclick="event.stopPropagation();tryOpenChat('${p.id}')">💬</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function doSpark(receiverId, name, type) {
+  if(type==='super'){
+    const f=document.createElement('div');f.className='spark-flash';f.innerHTML='<div class="spark-star">⚡</div>';
+    document.body.appendChild(f);setTimeout(()=>f.remove(),700);
+  }
+  try {
+    const res=await api('POST','/matches/spark',{receiver_id:receiverId,type});
+    if(res.matched){
+      const mf=document.createElement('div');mf.className='match-flash';document.body.appendChild(mf);setTimeout(()=>mf.remove(),800);
+      showToast('💥 It\'s a match with '+name+'! Start chatting!');
+      loadMatches();
+    } else {
+      showToast(type==='super'?'⚡ Super Spark sent to '+name+'!':'🔥 You sparked '+name+'!');
+    }
+    // Remove from discover grid
+    allProfiles=allProfiles.filter(p=>p.id!==receiverId);
+    renderProfiles(allProfiles);
+  } catch(e) { showToast('Error: '+e.message); }
+}
+
+/* ══ PROFILE MODAL ══════════════════════════════════════ */
+let pmodalPhotos=[];let pmodalIdx=0;
+async function openPModal(id) {
+  try {
+    const p=await api('GET','/users/'+id);
+    const photos=p.photos||[];
+    pmodalPhotos=photos; pmodalIdx=0;
+    const dist=userLat&&p.lat?fmtDist(haversine(userLat,userLng,p.lat,p.lng)):null;
+    const mainPhoto=photos.find(ph=>ph.is_primary)||photos[0];
+    document.getElementById('pmodal-inner').innerHTML=`
+      <div class="pmodal-gallery">
+        ${mainPhoto?`<img class="main-img" id="pm-main-img" src="${mainPhoto.url}">`:'<span class="fe">'+(EMOJIS_MAP[p.gender]||'👤')+'</span>'}
+        ${p.is_online?'<div class="avail-banner">⚡ Available now</div>':''}
+        ${photos.length>1?`<div class="pmodal-thumbs">${photos.map((ph,i)=>`<div class="pm-thumb${i===0?' active':''}" onclick="switchPMPhoto(${i})"><img src="${ph.url}"></div>`).join('')}</div>`:''}
+      </div>
+      <div class="pmodal-info">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:9px">
+          ${p.is_verified?'<span class="badge badge-lilac">✓ Verified</span>':''}
+          ${p.is_vip?'<span class="badge badge-volt">👑 VIP</span>':''}
+          ${p.mood?`<span class="badge badge-fire">${p.mood}</span>`:''}
+        </div>
+        <h2>${p.name}, ${p.age}</h2>
+        <div class="pmodal-loc">📍 ${p.city||'Somewhere'}${dist?' · '+dist+' away':''}</div>
+        ${p.tagline?`<div class="pmodal-tl">"${p.tagline}"</div>`:''}
+        ${p.bio?`<p style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:14px">${p.bio}</p>`:''}
+        ${p.vibes&&p.vibes.length?`<div class="pmodal-vibes">${p.vibes.map(v=>`<span class="badge" style="background:var(--card);border:1px solid var(--border);font-size:10px">${v}</span>`).join('')}</div>`:''}
+        <div class="meta-grid">
+          ${p.occupation?`<div class="meta-item"><div class="lbl">Occupation</div><div class="val">${p.occupation}</div></div>`:''}
+          ${p.city?`<div class="meta-item"><div class="lbl">City</div><div class="val">${p.city}</div></div>`:''}
+        </div>
+        <div class="pmodal-acts">
+          <button class="btn btn-fire" onclick="doSpark('${p.id}','${p.name}','like');closePModal()">🔥 Spark</button>
+          <button class="btn btn-ghost" onclick="tryOpenChat('${p.id}');closePModal()">💬 Chat</button>
+          <button class="btn btn-volt" onclick="doSpark('${p.id}','${p.name}','super');closePModal()">⚡ Super Spark</button>
+        </div>
+      </div>`;
+    document.getElementById('pmodal-ov').classList.remove('hidden');
+  } catch(e) { showToast('Failed to load profile'); }
+}
+function switchPMPhoto(idx){
+  pmodalIdx=idx;
+  const img=document.getElementById('pm-main-img');
+  if(img&&pmodalPhotos[idx])img.src=pmodalPhotos[idx].url;
+  document.querySelectorAll('.pm-thumb').forEach((t,i)=>t.classList.toggle('active',i===idx));
+}
+function closePModal(){document.getElementById('pmodal-ov').classList.add('hidden')}
+
+/* ══ MATCHES ════════════════════════════════════════════ */
+async function loadMatches() {
+  try {
+    const matches=await api('GET','/matches');
+    const grid=document.getElementById('matches-grid');
+    const empty=document.getElementById('match-empty');
+    if(!matches.length){grid.innerHTML='';empty.classList.remove('hidden');return;}
+    empty.classList.add('hidden');
+    grid.innerHTML=matches.map(m=>`
+      <div class="mbub" onclick="tryOpenChatMatch('${m.match_id}','${m.id}','${m.name}')">
+        <div class="mring"><div class="mring-inner">${m.photo?`<img src="${m.photo}">`:(EMOJIS_MAP[m.gender]||'👤')}${m.is_online?'<div class="m-online-dot"></div>':''}</div></div>
+        <div class="mname">${m.name}</div>
+      </div>`).join('');
+  } catch(e) { console.error(e); }
+}
+
+/* ══ MESSAGES ═══════════════════════════════════════════ */
+async function loadConversations() {
+  try {
+    const convs=await api('GET','/messages');
+    renderConvList(convs);
+    const totalUnread=convs.reduce((s,c)=>s+(c.unread_count||0),0);
+    if(totalUnread>0){document.getElementById('msg-badge').textContent=totalUnread;updateBadge('msg-badge',true);}
+  } catch(e) { console.error(e); }
+}
+
+function renderConvList(convs) {
+  const el=document.getElementById('conv-items');
+  el.innerHTML=convs.map(c=>`
+    <div class="conv-item" id="conv-${c.match_id}" onclick="openConv('${c.match_id}','${c.user_id}','${c.name}')">
+      <div class="conv-av">${c.photo?`<img src="${c.photo}">`:(EMOJIS_MAP[c.gender]||'👤')}${c.is_online?'<div class="dot"></div>':''}</div>
+      <div class="conv-info">
+        <div class="conv-name">${c.name}</div>
+        <div class="conv-prev">${c.last_message||'Say hey 👋'}</div>
+      </div>
+      <div class="conv-meta">
+        <div class="conv-time">${c.last_message_at?fmtTime(c.last_message_at):''}</div>
+        ${c.unread_count>0?`<div class="conv-unread">${c.unread_count}</div>`:''}
+      </div>
+    </div>`).join('');
+}
+
+function filterConvs(q){
+  document.querySelectorAll('.conv-item').forEach(el=>{
+    el.style.display=el.querySelector('.conv-name').textContent.toLowerCase().includes(q.toLowerCase())?'':'none';
+  });
+}
+
+async function tryOpenChat(userId) {
+  // Find existing match with this user
+  try {
+    const matches=await api('GET','/matches');
+    const m=matches.find(x=>x.id===userId);
+    if(m) { openConv(m.match_id,userId,m.name); showTab('messages',document.getElementById('sb-messages')); }
+    else showToast('You need to match first! Send a spark 🔥');
+  } catch(e) { showToast('Spark them first!'); }
+}
+function tryOpenChatMatch(matchId,userId,name){ openConv(matchId,userId,name); showTab('messages',document.getElementById('sb-messages')); }
+
+async function openConv(matchId, userId, name) {
+  activeConvMatchId=matchId;
+  document.querySelectorAll('.conv-item').forEach(el=>el.classList.remove('active'));
+  const ce=document.getElementById('conv-'+matchId);
+  if(ce){ce.classList.add('active');const u=ce.querySelector('.conv-unread');if(u)u.remove();}
+  // Get user info
+  let person={name,id:userId,emoji:EMOJIS_MAP['Other']||'👤'};
+  try{const u=await api('GET','/users/'+userId);person=u;}catch(_){}
+  const photo=person.photos&&person.photos.length?(person.photos.find(p=>p.is_primary)||person.photos[0]):null;
+  document.getElementById('chat-panel').innerHTML=`
+    <div class="chat-win">
+      <div class="chat-hdr">
+        <div class="chat-hdr-av">${photo?`<img src="${photo.url}">`:(EMOJIS_MAP[person.gender]||'👤')}</div>
+        <div class="chat-hdr-info">
+          <div class="hname">${person.name||name}</div>
+          <div class="hstatus">${person.is_online?'⚡ Online now':'Recently active'}</div>
+        </div>
+        <div class="chat-hdr-acts">
+          <button class="btn btn-ghost btn-sm" onclick="openPModal('${userId}')">👤</button>
+        </div>
+      </div>
+      <div class="chat-body" id="chat-body"></div>
+      <div class="chat-input-area">
+        <button class="ic-btn" onclick="addEmoji()">😊</button>
+        <button class="ic-btn" onclick="attachChatImg('${matchId}')">📷</button>
+        <input type="text" id="chat-inp" placeholder="Say something…" onkeydown="if(event.key==='Enter')sendMsg('${matchId}')">
+        <button class="send-btn" onclick="sendMsg('${matchId}')">➤</button>
+      </div>
+    </div>`;
+  loadMessages(matchId, person);
+  // Typing detection
+  const inp=document.getElementById('chat-inp');
+  if(inp&&socket){
+    let typing=false;let tt;
+    inp.addEventListener('input',()=>{
+      if(!typing){typing=true;socket.emit('typing:start',{senderId:ME.id,receiverId:userId});}
+      clearTimeout(tt);tt=setTimeout(()=>{typing=false;socket.emit('typing:stop',{senderId:ME.id,receiverId:userId});},1500);
+    });
+  }
+}
+
+async function loadMessages(matchId, person) {
+  try {
+    const msgs=await api('GET','/messages/'+matchId);
+    const body=document.getElementById('chat-body');if(!body)return;
+    body.innerHTML='';
+    msgs.forEach(m=>appendMessage(m, m.sender_id===ME.id));
+  } catch(e) { console.error(e); }
+}
+
+function appendMessage(msg, isMine) {
+  const body=document.getElementById('chat-body');if(!body)return;
+  const div=document.createElement('div');
+  div.className='msg'+(isMine?' sent':'');
+  const content=msg.media_url?`<img src="${msg.media_url}" style="max-width:180px;border-radius:10px;display:block">`:(msg.text||'');
+  div.innerHTML=`${!isMine?`<div class="msg-av">${msg.sender_photo?`<img src="${msg.sender_photo}">`:''}</div>`:''}<div><div class="msg-bubble">${content}</div><div class="msg-time">${fmtTime(msg.created_at||new Date())}</div></div>`;
+  body.appendChild(div);body.scrollTop=body.scrollHeight;
+}
+
+function showTypingIndicator(senderId) {
+  const body=document.getElementById('chat-body');if(!body)return;
+  let t=document.getElementById('typing-ind');
+  if(!t){t=document.createElement('div');t.id='typing-ind';t.className='msg';t.innerHTML='<div class="msg-bubble"><div class="typing-bubble"><div class="t-dot"></div><div class="t-dot"></div><div class="t-dot"></div></div></div>';body.appendChild(t);body.scrollTop=body.scrollHeight;}
+}
+function hideTypingIndicator(){const t=document.getElementById('typing-ind');if(t)t.remove();}
+
+async function sendMsg(matchId) {
+  const inp=document.getElementById('chat-inp');
+  const text=inp.value.trim();if(!text)return;
+  inp.value='';
+  try {
+    const msg=await api('POST','/messages/'+matchId,{text});
+    appendMessage({...msg,created_at:msg.created_at||new Date()},true);
+    // Also emit via socket for real-time
+    if(socket) socket.emit('message:send',{senderId:ME.id,receiverId:activeConvMatchId,text,matchId});
+  } catch(e) { showToast('Failed to send: '+e.message); inp.value=text; }
+}
+
+const EMOJIS_LIST=['🔥','😏','💯','⚡','😂','🥂','👀','😌','💃','🎯'];
+function addEmoji(){const i=document.getElementById('chat-inp');if(i)i.value+=EMOJIS_LIST[Math.floor(Math.random()*EMOJIS_LIST.length)];}
+
+function attachChatImg(matchId) {
+  const inp=document.createElement('input');inp.type='file';inp.accept='image/*';
+  inp.onchange=async function(){
+    if(!this.files[0])return;
+    const fd=new FormData();fd.append('photos',this.files[0]);
+    try {
+      const res=await api('POST','/photos',fd,true);
+      const url=res.photos[0].url;
+      const msg=await api('POST','/messages/'+matchId,{text:'📷 Photo',type:'image',media_url:url});
+      appendMessage({...msg,media_url:url},true);
+    } catch(e){showToast('Failed to send photo');}
+  };inp.click();
+}
+
+/* ══ NOTIFICATIONS ══════════════════════════════════════ */
+async function loadNotifications() {
+  try {
+    const notifs=await api('GET','/users/me/notifications');
+    const list=document.getElementById('notif-list');
+    const empty=document.getElementById('notif-empty');
+    if(!notifs.length){list.innerHTML='';empty.classList.remove('hidden');return;}
+    empty.classList.add('hidden');
+    list.innerHTML=notifs.map(n=>`
+      <div class="notif-item ${n.is_read?'':'unread'}">
+        <div class="notif-av">${n.from_photo?`<img src="${n.from_photo}">`:'👤'}</div>
+        <div class="notif-text"><strong>${n.from_name||'Someone'}</strong> ${n.message||'interacted with you'}
+          <div class="notif-time">${fmtTime(n.created_at)}</div>
+        </div>
+      </div>`).join('');
+  } catch(e) { console.error(e); }
+}
+
+/* ══ MY PROFILE ═════════════════════════════════════════ */
+function populateProfile() {
+  if(!ME)return;
+  document.getElementById('prof-name-display').textContent=(ME.name||'You')+(ME.age?', '+ME.age:'');
+  document.getElementById('prof-meta-display').textContent=ME.city?'📍 '+ME.city:'Complete your profile';
+  if(ME.mood) document.getElementById('prof-mood-badge').textContent=ME.mood;
+  if(ME.name) document.getElementById('e-name').value=ME.name;
+  if(ME.age) document.getElementById('e-age').value=ME.age;
+  if(ME.city) document.getElementById('e-city').value=ME.city;
+  if(ME.occupation) document.getElementById('e-job').value=ME.occupation;
+  if(ME.tagline) document.getElementById('e-tagline').value=ME.tagline;
+  if(ME.bio) document.getElementById('e-bio').value=ME.bio;
+  if(ME.mood) document.getElementById('e-mood').value=ME.mood;
+  if(ME.photos&&ME.photos.length){
+    myPhotos=ME.photos;renderPhotoGrid();
+    const primary=ME.photos.find(p=>p.is_primary)||ME.photos[0];
+    if(primary){
+      document.getElementById('own-av').innerHTML=`<img src="${primary.url}">`;
+      document.getElementById('sb-self-av').innerHTML=`<img src="${primary.url}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">`;
+    }
+  }
+  if(ME.vibes&&ME.vibes.length){
+    document.querySelectorAll('.vs-tag').forEach(t=>{
+      const txt=t.textContent.trim();
+      if(ME.vibes.includes(txt))t.classList.add('sel');else t.classList.remove('sel');
+    });
+  }
+}
+
+async function uploadAvatar(inp) {
+  if(!inp.files[0])return;
+  const fd=new FormData();fd.append('photos',inp.files[0]);
+  try {
+    const res=await api('POST','/photos',fd,true);
+    const photo=res.photos[0];
+    await api('PUT','/photos/'+photo.id+'/primary');
+    document.getElementById('own-av').innerHTML=`<img src="${photo.url}">`;
+    document.getElementById('sb-self-av').innerHTML=`<img src="${photo.url}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">`;
+    myPhotos=[{...photo,is_primary:true},...myPhotos.map(p=>({...p,is_primary:false}))];
+    renderPhotoGrid();
+    showToast('📸 Profile photo updated!');
+  } catch(e){showToast('Upload failed: '+e.message);}
+}
+
+async function uploadPhotos(files) {
+  if(!files||!files.length)return;
+  if(myPhotos.length>=6){showToast('Maximum 6 photos');return}
+  const fd=new FormData();
+  const slots=6-myPhotos.length;
+  Array.from(files).slice(0,slots).forEach(f=>fd.append('photos',f));
+  const prog=document.getElementById('up-prog');const bar=document.getElementById('up-bar');
+  prog.style.display='block';bar.style.width='30%';
+  try {
+    const res=await api('POST','/photos',fd,true);
+    bar.style.width='100%';
+    myPhotos=[...myPhotos,...res.photos];
+    renderPhotoGrid();
+    if(myPhotos.length>0&&!myPhotos.some(p=>p.is_primary)){
+      await api('PUT','/photos/'+myPhotos[0].id+'/primary');
+      myPhotos[0].is_primary=true; renderPhotoGrid();
+      document.getElementById('own-av').innerHTML=`<img src="${myPhotos[0].url}">`;
+      document.getElementById('sb-self-av').innerHTML=`<img src="${myPhotos[0].url}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">`;
+    }
+    showToast('📸 '+res.photos.length+' photo(s) uploaded!');
+  } catch(e){showToast('Upload failed: '+e.message);}
+  finally{setTimeout(()=>{prog.style.display='none';bar.style.width='0%';},700);}
+}
+
+function renderPhotoGrid() {
+  const grid=document.getElementById('photos-grid');
+  let html=myPhotos.map((p,i)=>`
+    <div class="photo-thumb">
+      <img src="${p.url}" alt="Photo ${i+1}">
+      ${p.is_primary?'<div class="pt-label">⭐ Main</div>':''}
+      ${!p.is_primary?`<button class="pt-primary-btn" onclick="setPrimary('${p.id}',${i})">⭐ Set main</button>`:''}
+      <button class="pt-del" onclick="deletePhoto('${p.id}',${i})">✕</button>
+    </div>`).join('');
+  for(let i=myPhotos.length;i<6;i++) html+=`<div class="photo-thumb" onclick="document.getElementById('bulk-inp').click()">➕</div>`;
+  grid.innerHTML=html;
+}
+
+async function setPrimary(photoId, idx) {
+  try {
+    await api('PUT','/photos/'+photoId+'/primary');
+    myPhotos=myPhotos.map((p,i)=>({...p,is_primary:i===idx}));
+    renderPhotoGrid();
+    document.getElementById('own-av').innerHTML=`<img src="${myPhotos[idx].url}">`;
+    document.getElementById('sb-self-av').innerHTML=`<img src="${myPhotos[idx].url}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">`;
+    showToast('⭐ Profile photo updated!');
+  } catch(e){showToast('Failed: '+e.message);}
+}
+
+async function deletePhoto(photoId, idx) {
+  try {
+    await api('DELETE','/photos/'+photoId);
+    myPhotos.splice(idx,1);
+    if(myPhotos.length>0&&!myPhotos.some(p=>p.is_primary)){myPhotos[0].is_primary=true;}
+    renderPhotoGrid();
+    if(myPhotos[0]) {document.getElementById('own-av').innerHTML=`<img src="${myPhotos[0].url}">`;document.getElementById('sb-self-av').innerHTML=`<img src="${myPhotos[0].url}" style="width:100%;height:100%;border-radius:50%;object-fit:cover">`;}
+    showToast('Photo removed');
+  } catch(e){showToast('Failed: '+e.message);}
+}
+
+async function saveProfile() {
+  const name=document.getElementById('e-name').value.trim();
+  const age=document.getElementById('e-age').value;
+  const city=document.getElementById('e-city').value.trim();
+  const vibes=[...document.querySelectorAll('.vs-tag.sel')].map(t=>t.textContent.trim());
+  if(!name){showToast('Enter your name');return}
+  const btn=document.getElementById('save-prof-btn');
+  btn.innerHTML='<span class="spinner"></span> Saving…';btn.disabled=true;
+  try {
+    await api('PUT','/users/me',{
+      name,age:parseInt(age),city,
+      occupation:document.getElementById('e-job').value.trim(),
+      tagline:document.getElementById('e-tagline').value.trim(),
+      bio:document.getElementById('e-bio').value.trim(),
+      mood:document.getElementById('e-mood').value,
+      vibes
+    });
+    document.getElementById('prof-name-display').textContent=name+(age?', '+age:'');
+    document.getElementById('prof-meta-display').textContent=city?'📍 '+city:'Complete your profile';
+    document.getElementById('prof-mood-badge').textContent=document.getElementById('e-mood').value;
+    showToast('✅ Profile saved!');
+  } catch(e){showToast('Save failed: '+e.message);}
+  finally{btn.innerHTML='Save Profile';btn.disabled=false;}
+}
+
+/* ══ PREMIUM ════════════════════════════════════════════ */
+function openPremium(){document.getElementById('prem-ov').classList.remove('hidden')}
+function closePremium(){document.getElementById('prem-ov').classList.add('hidden')}
+function selPlan(el){document.querySelectorAll('.plan').forEach(p=>p.classList.remove('sel'));el.classList.add('sel')}
+function subVIP(){closePremium();showToast('👑 VIP trial activated! You\'re on fire 🔥')}
+
+/* ══ UTILS ══════════════════════════════════════════════ */
+function showFieldErr(el, msg){el.textContent=msg;el.classList.remove('hidden');setTimeout(()=>el.classList.add('hidden'),4000);}
+function showToast(msg){
+  const t=document.createElement('div');t.className='toast';t.textContent=msg;
+  document.body.appendChild(t);
+  setTimeout(()=>{t.style.transition='opacity .3s';t.style.opacity='0';setTimeout(()=>t.remove(),300)},3000);
+}
+function fmtTime(iso){
+  const d=new Date(iso),now=new Date();
+  const diff=(now-d)/1000;
+  if(diff<60) return 'just now';
+  if(diff<3600) return Math.floor(diff/60)+'m ago';
+  if(diff<86400) return d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');
+  return d.toLocaleDateString();
+}
+</script>
+</body>
+</html>

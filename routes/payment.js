@@ -1,0 +1,163 @@
+const router = require('express').Router();
+const axios = require('axios');
+const db = require('../db');
+const auth = require('../middleware/auth');
+
+// ── M-PESA DARAJA HELPERS ─────────────────────────────
+async function getDarajaToken() {
+  const key = process.env.MPESA_CONSUMER_KEY;
+  const secret = process.env.MPESA_CONSUMER_SECRET;
+  const credentials = Buffer.from(`${key}:${secret}`).toString('base64');
+  const { data } = await axios.get(
+    'https://api.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials',
+    { headers: { Authorization: `Basic ${credentials}` } }
+  );
+  return data.access_token;
+}
+
+function mpesaTimestamp() {
+  return new Date().toISOString().replace(/[-:T.Z]/g, '').slice(0, 14);
+}
+
+function mpesaPassword(timestamp) {
+  const shortcode = process.env.MPESA_SHORTCODE;
+  const passkey = process.env.MPESA_PASSKEY;
+  return Buffer.from(`${shortcode}${passkey}${timestamp}`).toString('base64');
+}
+
+// POST /api/payment/mpesa/stkpush
+router.post('/mpesa/stkpush', auth, async (req, res) => {
+  const { phone } = req.body;
+  if (!phone) return res.status(400).json({ error: 'Phone number required' });
+
+  // Normalise phone: 0712... → 254712...
+  const normalised = phone.replace(/^0/, '254').replace(/\s+/g, '');
+  if (!/^2547\d{8}$/.test(normalised))
+    return res.status(400).json({ error: 'Invalid Kenyan phone number' });
+
+  try {
+    const token = await getDarajaToken();
+    const timestamp = mpesaTimestamp();
+    const password = mpesaPassword(timestamp);
+
+    const payload = {
+      BusinessShortCode: process.env.MPESA_SHORTCODE,
+      Password: password,
+      Timestamp: timestamp,
+      TransactionType: 'CustomerPayBillOnline',
+      Amount: 200,
+      PartyA: normalised,
+      PartyB: process.env.MPESA_SHORTCODE,
+      PhoneNumber: normalised,
+      CallBackURL: `${process.env.APP_URL}/api/payment/mpesa/callback`,
+      AccountReference: 'MAPENZITELE',
+      TransactionDesc: 'mapenziTELE Access Fee'
+    };
+
+    const { data } = await axios.post(
+      'https://api.safaricom.co.ke/mpesa/stkpush/v1/processrequest',
+      payload,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    if (data.ResponseCode !== '0')
+      return res.status(400).json({ error: data.ResponseDescription });
+
+    // Save pending payment
+    await db.query(
+      `INSERT INTO payments (user_id, amount, method, phone, checkout_request_id, status)
+       VALUES ($1, 200, 'mpesa', $2, $3, 'pending')`,
+      [req.user.id, normalised, data.CheckoutRequestID]
+    );
+
+    res.json({
+      success: true,
+      checkoutRequestId: data.CheckoutRequestID,
+      message: 'STK push sent. Enter your M-Pesa PIN to complete payment.'
+    });
+  } catch (e) {
+    console.error('M-Pesa STK error:', e.response?.data || e.message);
+    res.status(500).json({ error: 'M-Pesa request failed. Try again.' });
+  }
+});
+
+// POST /api/payment/mpesa/callback  — Safaricom calls this
+router.post('/mpesa/callback', async (req, res) => {
+  const body = req.body?.Body?.stkCallback;
+  if (!body) return res.status(200).json({ ResultCode: 0 });
+
+  const { CheckoutRequestID, ResultCode, CallbackMetadata } = body;
+
+  if (ResultCode === 0) {
+    // Payment succeeded
+    const receipt = CallbackMetadata?.Item?.find(i => i.Name === 'MpesaReceiptNumber')?.Value;
+    await db.query(
+      `UPDATE payments SET status='completed', mpesa_receipt=$1 WHERE checkout_request_id=$2`,
+      [receipt, CheckoutRequestID]
+    );
+    // Unlock user
+    const { rows } = await db.query(
+      'UPDATE users SET is_paid=TRUE WHERE id=(SELECT user_id FROM payments WHERE checkout_request_id=$1) RETURNING id',
+      [CheckoutRequestID]
+    );
+    // Notify via socket if online
+    if (rows[0]) {
+      const io = global.appIo;
+      if (io) io.emit('payment:confirmed', { userId: rows[0].id });
+    }
+  } else {
+    await db.query(
+      `UPDATE payments SET status='failed' WHERE checkout_request_id=$1`,
+      [CheckoutRequestID]
+    );
+  }
+
+  res.json({ ResultCode: 0, ResultDesc: 'Accepted' });
+});
+
+// GET /api/payment/mpesa/status/:checkoutRequestId
+router.get('/mpesa/status/:checkoutRequestId', auth, async (req, res) => {
+  try {
+    const { rows } = await db.query(
+      'SELECT status, mpesa_receipt FROM payments WHERE checkout_request_id=$1 AND user_id=$2',
+      [req.params.checkoutRequestId, req.user.id]
+    );
+    if (!rows[0]) return res.status(404).json({ error: 'Payment not found' });
+
+    if (rows[0].status === 'completed') {
+      // Re-fetch user paid status
+      const user = await db.query('SELECT is_paid FROM users WHERE id=$1', [req.user.id]);
+      return res.json({ status: 'completed', is_paid: user.rows[0].is_paid, receipt: rows[0].mpesa_receipt });
+    }
+    res.json({ status: rows[0].status });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to check payment status' });
+  }
+});
+
+// POST /api/payment/manual  — admin can manually mark paid (testing / bank transfer)
+router.post('/manual', auth, async (req, res) => {
+  const { method = 'bank', reference = 'MANUAL' } = req.body;
+  try {
+    await db.query(
+      `INSERT INTO payments (user_id, amount, method, mpesa_receipt, status)
+       VALUES ($1, 200, $2, $3, 'completed')`,
+      [req.user.id, method, reference]
+    );
+    await db.query('UPDATE users SET is_paid=TRUE WHERE id=$1', [req.user.id]);
+    res.json({ success: true, message: 'Payment recorded. Access granted.' });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to record payment' });
+  }
+});
+
+// GET /api/payment/history
+router.get('/history', auth, async (req, res) => {
+  const { rows } = await db.query(
+    'SELECT id, amount, currency, method, mpesa_receipt, status, created_at FROM payments WHERE user_id=$1 ORDER BY created_at DESC',
+    [req.user.id]
+  );
+  res.json(rows);
+});
+
+module.exports = router;

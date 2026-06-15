@@ -1,0 +1,7 @@
+node_modules/
+.env
+public/uploads/*.webp
+public/uploads/*.jpg
+public/uploads/*.png
+*.log
+.DS_Store
