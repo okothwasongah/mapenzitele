@@ -104,8 +104,9 @@ input::placeholder,textarea::placeholder{color:var(--muted)}
 .auth-switch a{color:var(--fire);cursor:pointer;font-weight:700}
 .field-error{font-size:11px;color:var(--fire);margin-top:4px}
 
-/* ══ PAYMENT MODAL ══ */
-.pay-modal{background:var(--deep);border:1px solid var(--border);border-radius:var(--r-lg);padding:38px;width:100%;max-width:440px;position:relative;animation:slideUp .3s ease;text-align:center;max-height:90vh;overflow-y:auto;}
+/* ══ PAYMENT MODAL ══ */.pay-modal{background:var(--deep);border:1px solid var(--border);border-radius:var(--r-lg);padding:38px;width:100%;max-width:440px;position:relative;animation:slideUp .3s ease;text-align:center;max-height:90vh;overflow-y:auto;}
+.pay-modal{background:var(--deep);border:1px solid var(--border);border-radius:var(--r-lg);padding:38px;width:100%;max-width:440px;position:relative;animation:slideUp .3s ease;text-align:center}
+.pay-modal h2{font-size:24px;font-weight:900;margin-bottom:5px}
 .pay-amount{font-size:52px;font-weight:900;letter-spacing:-2px;margin:14px 0 3px}
 .pay-period{font-size:13px;color:var(--muted);margin-bottom:22px}
 .pay-perks{text-align:left;background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px 18px;margin-bottom:20px}
