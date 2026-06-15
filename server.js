@@ -16,6 +16,7 @@ const io = new Server(server, {
 // ── SECURITY ──────────────────────────────────────────
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors({ origin: process.env.CLIENT_URL || '*', credentials: true }));
+app.set('trust proxy', 1);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
