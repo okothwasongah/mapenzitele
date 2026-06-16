@@ -9,7 +9,7 @@ async function getDarajaToken() {
   const secret = process.env.MPESA_CONSUMER_SECRET;
   const credentials = Buffer.from(`${key}:${secret}`).toString('base64');
   const { data } = await axios.get(
-process.env.MPESA_ENV === 'production' ? 'https://api.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials' : 'https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials',
+
     { headers: { Authorization: `Basic ${credentials}` } }
   );
   return data.access_token;
@@ -55,7 +55,7 @@ router.post('/mpesa/stkpush', auth, async (req, res) => {
     };
 
     const { data } = await axios.post(
-process.env.MPESA_ENV === 'production' ? 'https://api.safaricom.co.ke/mpesa/stkpush/v1/processrequest' : 'https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest',
+      'https://api.safaricom.co.ke/mpesa/stkpush/v1/processrequest',
       payload,
       { headers: { Authorization: `Bearer ${token}` } }
     );

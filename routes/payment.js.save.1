@@ -55,7 +55,7 @@ router.post('/mpesa/stkpush', auth, async (req, res) => {
     };
 
     const { data } = await axios.post(
-process.env.MPESA_ENV === 'production' ? 'https://api.safaricom.co.ke/mpesa/stkpush/v1/processrequest' : 'https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest',
+
       payload,
       { headers: { Authorization: `Bearer ${token}` } }
     );
@@ -93,7 +93,7 @@ router.post('/mpesa/callback', async (req, res) => {
     const receipt = CallbackMetadata?.Item?.find(i => i.Name === 'MpesaReceiptNumber')?.Value;
     await db.query(
       `UPDATE payments SET status='completed', mpesa_receipt=$1 WHERE checkout_request_id=$2`,
-      [receipt, CheckoutRequestID]
+mmmmmmmmmmmmmmmmmmmmm      [receipt, CheckoutRequestID]
     );
     // Unlock user
     const { rows } = await db.query(
