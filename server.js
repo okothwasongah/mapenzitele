@@ -17,6 +17,12 @@ const io = new Server(server, {
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors({ origin: process.env.CLIENT_URL || '*', credentials: true }));
 app.set('trust proxy', 1);
+app.use((req, res, next) => {
+  if (req.headers.host === 'mapenzitele.co.ke') {
+    return res.redirect(301, 'https://www.mapenzitele.co.ke' + req.url);
+  }
+  next();
+});
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
