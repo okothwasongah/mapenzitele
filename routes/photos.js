@@ -8,7 +8,7 @@ const db = require('../db');
 const auth = require('../middleware/auth');
 
 // Ensure upload directory exists
-const UPLOAD_DIR = path.join(__dirname, '../public/uploads');
+const UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(__dirname, '../public/uploads');
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
 const storage = multer.memoryStorage();
@@ -60,6 +60,23 @@ router.post('/', auth, upload.array('photos', 6), async (req, res) => {
     }
 
     res.status(201).json({ success: true, photos: saved });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: 'Upload failed: ' + e.message });
+  }
+});
+
+// POST /api/photos/chat  — upload a single image for chat (not added to profile gallery)
+router.post('/chat', auth, upload.single('photos'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+  try {
+    const filename = `chat-${uuidv4()}.webp`;
+    const filepath = path.join(UPLOAD_DIR, filename);
+    await sharp(req.file.buffer)
+      .resize(1000, 1000, { fit: 'inside', withoutEnlargement: true })
+      .webp({ quality: 82 })
+      .toFile(filepath);
+    res.status(201).json({ success: true, url: `/uploads/${filename}` });
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: 'Upload failed: ' + e.message });

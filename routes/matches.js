@@ -82,7 +82,7 @@ router.get('/', auth, requirePaid, async (req, res) => {
   try {
     const { rows } = await db.query(
       `SELECT m.id as match_id, m.created_at as matched_at,
-              u.id, u.name, u.age, u.city, u.mood, u.is_online, u.last_seen,
+              u.id, u.name, u.age, u.gender, u.city, u.mood, u.is_online, u.last_seen,
               (SELECT url FROM photos WHERE user_id=u.id AND is_primary=TRUE LIMIT 1) as photo
        FROM matches m
        JOIN users u ON u.id = CASE WHEN m.user1_id=$1 THEN m.user2_id ELSE m.user1_id END

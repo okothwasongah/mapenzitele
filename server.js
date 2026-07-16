@@ -18,7 +18,7 @@ app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors({ origin: process.env.CLIENT_URL || '*', credentials: true }));
 app.set('trust proxy', 1);
 app.use((req, res, next) => {
-  if (req.headers.host === 'mapenzitele.co.ke') {
+  if (req.headers.host === 'mapenzitele.co.ke' && !req.path.startsWith('/api/payment/mpesa/callback')) {
     return res.redirect(301, 'https://www.mapenzitele.co.ke' + req.url);
   }
   next();
@@ -27,13 +27,17 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // Rate limiting
-const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 100, message: { error: 'Too many requests' } });
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, max: 600,
+  message: { error: 'Too many requests' },
+  skip: (req) => req.path.startsWith('/payment/mpesa/callback')
+});
 const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20, message: { error: 'Too many auth attempts' } });
 app.use('/api/', limiter);
 app.use('/api/auth/', authLimiter);
 
 // ── STATIC FILES ──────────────────────────────────────
-app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
+app.use('/uploads', express.static(process.env.UPLOAD_DIR || path.join(__dirname, 'public/uploads')));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ── ROUTES ────────────────────────────────────────────
@@ -53,20 +57,6 @@ io.on('connection', (socket) => {
   socket.on('user:online', (userId) => {
     onlineUsers.set(userId, socket.id);
     io.emit('user:status', { userId, online: true });
-  });
-
-  socket.on('message:send', async (data) => {
-    const { senderId, receiverId, text, type } = data;
-    // Store in DB via message route helper
-    const targetSocket = onlineUsers.get(receiverId);
-    if (targetSocket) {
-      io.to(targetSocket).emit('message:receive', {
-        senderId, text, type: type || 'text',
-        timestamp: new Date().toISOString()
-      });
-    }
-    // Emit delivery confirmation to sender
-    socket.emit('message:delivered', { receiverId, timestamp: new Date().toISOString() });
   });
 
   socket.on('typing:start', ({ senderId, receiverId }) => {

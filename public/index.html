@@ -705,6 +705,13 @@ async function api(method, path, body, isFile=false) {
   return data;
 }
 
+/* ══ SAFETY ═════════════════════════════════════════════ */
+function esc(v){
+  if(v===null||v===undefined)return '';
+  return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+const PCACHE = {}; // id -> {name,...} so we never inject names into onclick strings
+
 /* ══ STATE ══════════════════════════════════════════════ */
 let userGender='Woman', userLooking='Men', userMood='Spontaneous';
 let activePayMethod = 'mpesa';
@@ -834,7 +841,7 @@ async function doPayment() {
       let attempts=0;
       pollInterval=setInterval(async()=>{
         attempts++;
-        if(attempts>20){clearInterval(pollInterval);status.className='pay-status error';status.textContent='Timed out. Try again.';btn.disabled=false;btn.textContent='Pay KES 200 →';poll.style.display='none';return}
+        if(attempts>60){clearInterval(pollInterval);status.className='pay-status error';status.textContent='Still processing. If money was deducted, sign in again in a few minutes — your access will be active.';btn.disabled=false;btn.textContent='Pay KES 200 →';poll.style.display='none';return}
         try{
           const st = await api('GET',`/payment/mpesa/status/${checkoutRequestId}`);
           if(st.status==='completed'){clearInterval(pollInterval);completeAccess();}
@@ -848,12 +855,10 @@ async function doPayment() {
     status.className='pay-status processing'; status.textContent='Transfer KES 200 to the account above. Access granted within 5 minutes.';
     btn.innerHTML='Waiting for transfer…'; btn.disabled=true;
   } else {
-    // Card / Airtel: record payment (in production connect to actual gateway)
-    btn.innerHTML='<span class="spinner spinner-dark"></span> Processing…'; btn.disabled=true;
-    try {
-      await api('POST', '/payment/manual', { method: activePayMethod });
-      completeAccess();
-    } catch(e) { status.className='pay-status error'; status.textContent=e.message; btn.disabled=false; btn.textContent='Pay KES 200 →'; }
+    // Card / Airtel gateways not integrated yet — steer to M-Pesa
+    status.className='pay-status error';
+    status.textContent='Card & Airtel Money are coming soon. Please pay with M-Pesa for instant access.';
+    selPM('mpesa');
   }
 }
 
@@ -989,13 +994,14 @@ function renderGrid(people, gridId) {
   const grid=document.getElementById(gridId);if(!grid)return;
   if(!people.length){grid.innerHTML='';return;}
   grid.innerHTML=people.map(p=>{
+    PCACHE[p.id]=p;
     const dist=userLat&&p.lat?fmtDist(haversine(userLat,userLng,p.lat,p.lng)):null;
     const photo=p.photos&&p.photos.length?p.photos.find(ph=>ph.is_primary)||p.photos[0]:null;
-    const distStr=dist?'📍 '+p.city+' · '+dist:(p.city||'');
+    const distStr=dist?'📍 '+esc(p.city)+' · '+dist:esc(p.city||'');
     const isNearby=userLat&&p.lat&&haversine(userLat,userLng,p.lat,p.lng)<20;
     return `<div class="pcard" onclick="openPModal('${p.id}')">
       <div class="pcard-face">
-        ${photo?`<img src="${photo.url}" alt="${p.name}">`:'<span class="fe">'+(EMOJIS_MAP[p.gender]||'👤')+'</span>'}
+        ${photo?`<img src="${esc(photo.url)}" alt="${esc(p.name)}">`:'<span class="fe">'+(EMOJIS_MAP[p.gender]||'👤')+'</span>'}
         ${isNearby?'<div class="nearby-chip">📍 Near You</div>':''}
         <div class="pcard-pills">
           <span class="ppill av">${p.is_online?'⚡ Online':'Recently active'}</span>
@@ -1004,25 +1010,26 @@ function renderGrid(people, gridId) {
       </div>
       <div class="pcard-body">
         <div class="pcard-name-row">
-          <span class="pcard-name">${p.name}, ${p.age}</span>
+          <span class="pcard-name">${esc(p.name)}, ${esc(p.age)}</span>
           ${p.is_online?'<span class="online-dot"></span>':''}
           ${p.is_verified?'<span style="font-size:11px;color:var(--lilac)">✓</span>':''}
         </div>
         <div class="pcard-meta">${distStr}</div>
-        <div class="pcard-tl">${p.tagline||p.mood||''}</div>
-        ${p.mood?`<div style="margin-top:5px"><span class="badge badge-fire" style="font-size:9px">${p.mood}</span></div>`:''}
+        <div class="pcard-tl">${esc(p.tagline||p.mood||'')}</div>
+        ${p.mood?`<div style="margin-top:5px"><span class="badge badge-fire" style="font-size:9px">${esc(p.mood)}</span></div>`:''}
       </div>
       <div class="pcard-acts">
         <button class="act" title="Pass" onclick="event.stopPropagation();showToast('Passed 👋')">✕</button>
-        <button class="act like" title="Spark" onclick="event.stopPropagation();doSpark('${p.id}','${p.name}','like')">🔥</button>
-        <button class="act spark" title="Super Spark" onclick="event.stopPropagation();doSpark('${p.id}','${p.name}','super')">⚡</button>
+        <button class="act like" title="Spark" onclick="event.stopPropagation();doSpark('${p.id}','like')">🔥</button>
+        <button class="act spark" title="Super Spark" onclick="event.stopPropagation();doSpark('${p.id}','super')">⚡</button>
         <button class="act msg" title="Message" onclick="event.stopPropagation();tryOpenChat('${p.id}')">💬</button>
       </div>
     </div>`;
   }).join('');
 }
 
-async function doSpark(receiverId, name, type) {
+async function doSpark(receiverId, type) {
+  const name=(PCACHE[receiverId]&&PCACHE[receiverId].name)||'them';
   if(type==='super'){
     const f=document.createElement('div');f.className='spark-flash';f.innerHTML='<div class="spark-star">⚡</div>';
     document.body.appendChild(f);setTimeout(()=>f.remove(),700);
@@ -1047,6 +1054,7 @@ let pmodalPhotos=[];let pmodalIdx=0;
 async function openPModal(id) {
   try {
     const p=await api('GET','/users/'+id);
+    PCACHE[p.id]=p;
     const photos=p.photos||[];
     pmodalPhotos=photos; pmodalIdx=0;
     const dist=userLat&&p.lat?fmtDist(haversine(userLat,userLng,p.lat,p.lng)):null;
@@ -1061,21 +1069,21 @@ async function openPModal(id) {
         <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:9px">
           ${p.is_verified?'<span class="badge badge-lilac">✓ Verified</span>':''}
           ${p.is_vip?'<span class="badge badge-volt">👑 VIP</span>':''}
-          ${p.mood?`<span class="badge badge-fire">${p.mood}</span>`:''}
+          ${p.mood?`<span class="badge badge-fire">${esc(p.mood)}</span>`:''}
         </div>
-        <h2>${p.name}, ${p.age}</h2>
-        <div class="pmodal-loc">📍 ${p.city||'Somewhere'}${dist?' · '+dist+' away':''}</div>
-        ${p.tagline?`<div class="pmodal-tl">"${p.tagline}"</div>`:''}
-        ${p.bio?`<p style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:14px">${p.bio}</p>`:''}
-        ${p.vibes&&p.vibes.length?`<div class="pmodal-vibes">${p.vibes.map(v=>`<span class="badge" style="background:var(--card);border:1px solid var(--border);font-size:10px">${v}</span>`).join('')}</div>`:''}
+        <h2>${esc(p.name)}, ${esc(p.age)}</h2>
+        <div class="pmodal-loc">📍 ${esc(p.city||'Somewhere')}${dist?' · '+dist+' away':''}</div>
+        ${p.tagline?`<div class="pmodal-tl">"${esc(p.tagline)}"</div>`:''}
+        ${p.bio?`<p style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:14px">${esc(p.bio)}</p>`:''}
+        ${p.vibes&&p.vibes.length?`<div class="pmodal-vibes">${p.vibes.map(v=>`<span class="badge" style="background:var(--card);border:1px solid var(--border);font-size:10px">${esc(v)}</span>`).join('')}</div>`:''}
         <div class="meta-grid">
-          ${p.occupation?`<div class="meta-item"><div class="lbl">Occupation</div><div class="val">${p.occupation}</div></div>`:''}
-          ${p.city?`<div class="meta-item"><div class="lbl">City</div><div class="val">${p.city}</div></div>`:''}
+          ${p.occupation?`<div class="meta-item"><div class="lbl">Occupation</div><div class="val">${esc(p.occupation)}</div></div>`:''}
+          ${p.city?`<div class="meta-item"><div class="lbl">City</div><div class="val">${esc(p.city)}</div></div>`:''}
         </div>
         <div class="pmodal-acts">
-          <button class="btn btn-fire" onclick="doSpark('${p.id}','${p.name}','like');closePModal()">🔥 Spark</button>
+          <button class="btn btn-fire" onclick="doSpark('${p.id}','like');closePModal()">🔥 Spark</button>
           <button class="btn btn-ghost" onclick="tryOpenChat('${p.id}');closePModal()">💬 Chat</button>
-          <button class="btn btn-volt" onclick="doSpark('${p.id}','${p.name}','super');closePModal()">⚡ Super Spark</button>
+          <button class="btn btn-volt" onclick="doSpark('${p.id}','super');closePModal()">⚡ Super Spark</button>
         </div>
       </div>`;
     document.getElementById('pmodal-ov').classList.remove('hidden');
@@ -1097,11 +1105,13 @@ async function loadMatches() {
     const empty=document.getElementById('match-empty');
     if(!matches.length){grid.innerHTML='';empty.classList.remove('hidden');return;}
     empty.classList.add('hidden');
-    grid.innerHTML=matches.map(m=>`
-      <div class="mbub" onclick="tryOpenChatMatch('${m.match_id}','${m.id}','${m.name}')">
-        <div class="mring"><div class="mring-inner">${m.photo?`<img src="${m.photo}">`:(EMOJIS_MAP[m.gender]||'👤')}${m.is_online?'<div class="m-online-dot"></div>':''}</div></div>
-        <div class="mname">${m.name}</div>
-      </div>`).join('');
+    grid.innerHTML=matches.map(m=>{
+      PCACHE[m.id]={...(PCACHE[m.id]||{}),...m};
+      return `
+      <div class="mbub" onclick="tryOpenChatMatch('${m.match_id}','${m.id}')">
+        <div class="mring"><div class="mring-inner">${m.photo?`<img src="${esc(m.photo)}">`:(EMOJIS_MAP[m.gender]||'👤')}${m.is_online?'<div class="m-online-dot"></div>':''}</div></div>
+        <div class="mname">${esc(m.name)}</div>
+      </div>`;}).join('');
   } catch(e) { console.error(e); }
 }
 
@@ -1117,18 +1127,20 @@ async function loadConversations() {
 
 function renderConvList(convs) {
   const el=document.getElementById('conv-items');
-  el.innerHTML=convs.map(c=>`
-    <div class="conv-item" id="conv-${c.match_id}" onclick="openConv('${c.match_id}','${c.user_id}','${c.name}')">
-      <div class="conv-av">${c.photo?`<img src="${c.photo}">`:(EMOJIS_MAP[c.gender]||'👤')}${c.is_online?'<div class="dot"></div>':''}</div>
+  el.innerHTML=convs.map(c=>{
+    PCACHE[c.user_id]={...(PCACHE[c.user_id]||{}),name:c.name};
+    return `
+    <div class="conv-item" id="conv-${c.match_id}" onclick="openConv('${c.match_id}','${c.user_id}')">
+      <div class="conv-av">${c.photo?`<img src="${esc(c.photo)}">`:(EMOJIS_MAP[c.gender]||'👤')}${c.is_online?'<div class="dot"></div>':''}</div>
       <div class="conv-info">
-        <div class="conv-name">${c.name}</div>
-        <div class="conv-prev">${c.last_message||'Say hey 👋'}</div>
+        <div class="conv-name">${esc(c.name)}</div>
+        <div class="conv-prev">${esc(c.last_message||'Say hey 👋')}</div>
       </div>
       <div class="conv-meta">
         <div class="conv-time">${c.last_message_at?fmtTime(c.last_message_at):''}</div>
         ${c.unread_count>0?`<div class="conv-unread">${c.unread_count}</div>`:''}
       </div>
-    </div>`).join('');
+    </div>`;}).join('');
 }
 
 function filterConvs(q){
@@ -1142,13 +1154,14 @@ async function tryOpenChat(userId) {
   try {
     const matches=await api('GET','/matches');
     const m=matches.find(x=>x.id===userId);
-    if(m) { openConv(m.match_id,userId,m.name); showTab('messages',document.getElementById('sb-messages')); }
+    if(m) { openConv(m.match_id,userId); showTab('messages',document.getElementById('sb-messages')); }
     else showToast('You need to match first! Send a spark 🔥');
   } catch(e) { showToast('Spark them first!'); }
 }
-function tryOpenChatMatch(matchId,userId,name){ openConv(matchId,userId,name); showTab('messages',document.getElementById('sb-messages')); }
+function tryOpenChatMatch(matchId,userId){ openConv(matchId,userId); showTab('messages',document.getElementById('sb-messages')); }
 
-async function openConv(matchId, userId, name) {
+async function openConv(matchId, userId) {
+  const name=(PCACHE[userId]&&PCACHE[userId].name)||'';
   activeConvMatchId=matchId;
   document.querySelectorAll('.conv-item').forEach(el=>el.classList.remove('active'));
   const ce=document.getElementById('conv-'+matchId);
@@ -1160,9 +1173,9 @@ async function openConv(matchId, userId, name) {
   document.getElementById('chat-panel').innerHTML=`
     <div class="chat-win">
       <div class="chat-hdr">
-        <div class="chat-hdr-av">${photo?`<img src="${photo.url}">`:(EMOJIS_MAP[person.gender]||'👤')}</div>
+        <div class="chat-hdr-av">${photo?`<img src="${esc(photo.url)}">`:(EMOJIS_MAP[person.gender]||'👤')}</div>
         <div class="chat-hdr-info">
-          <div class="hname">${person.name||name}</div>
+          <div class="hname">${esc(person.name||name)}</div>
           <div class="hstatus">${person.is_online?'⚡ Online now':'Recently active'}</div>
         </div>
         <div class="chat-hdr-acts">
@@ -1202,8 +1215,8 @@ function appendMessage(msg, isMine) {
   const body=document.getElementById('chat-body');if(!body)return;
   const div=document.createElement('div');
   div.className='msg'+(isMine?' sent':'');
-  const content=msg.media_url?`<img src="${msg.media_url}" style="max-width:180px;border-radius:10px;display:block">`:(msg.text||'');
-  div.innerHTML=`${!isMine?`<div class="msg-av">${msg.sender_photo?`<img src="${msg.sender_photo}">`:''}</div>`:''}<div><div class="msg-bubble">${content}</div><div class="msg-time">${fmtTime(msg.created_at||new Date())}</div></div>`;
+  const content=msg.media_url?`<img src="${esc(msg.media_url)}" style="max-width:180px;border-radius:10px;display:block">`:esc(msg.text||'');
+  div.innerHTML=`${!isMine?`<div class="msg-av">${msg.sender_photo?`<img src="${esc(msg.sender_photo)}">`:''}</div>`:''}<div><div class="msg-bubble">${content}</div><div class="msg-time">${fmtTime(msg.created_at||new Date())}</div></div>`;
   body.appendChild(div);body.scrollTop=body.scrollHeight;
 }
 
@@ -1221,8 +1234,6 @@ async function sendMsg(matchId) {
   try {
     const msg=await api('POST','/messages/'+matchId,{text});
     appendMessage({...msg,created_at:msg.created_at||new Date()},true);
-    // Also emit via socket for real-time
-    if(socket) socket.emit('message:send',{senderId:ME.id,receiverId:activeConvMatchId,text,matchId});
   } catch(e) { showToast('Failed to send: '+e.message); inp.value=text; }
 }
 
@@ -1235,8 +1246,8 @@ function attachChatImg(matchId) {
     if(!this.files[0])return;
     const fd=new FormData();fd.append('photos',this.files[0]);
     try {
-      const res=await api('POST','/photos',fd,true);
-      const url=res.photos[0].url;
+      const res=await api('POST','/photos/chat',fd,true);
+      const url=res.url;
       const msg=await api('POST','/messages/'+matchId,{text:'📷 Photo',type:'image',media_url:url});
       appendMessage({...msg,media_url:url},true);
     } catch(e){showToast('Failed to send photo');}
@@ -1253,8 +1264,8 @@ async function loadNotifications() {
     empty.classList.add('hidden');
     list.innerHTML=notifs.map(n=>`
       <div class="notif-item ${n.is_read?'':'unread'}">
-        <div class="notif-av">${n.from_photo?`<img src="${n.from_photo}">`:'👤'}</div>
-        <div class="notif-text"><strong>${n.from_name||'Someone'}</strong> ${n.message||'interacted with you'}
+        <div class="notif-av">${n.from_photo?`<img src="${esc(n.from_photo)}">`:'👤'}</div>
+        <div class="notif-text"><strong>${esc(n.from_name||'Someone')}</strong> ${esc(n.message||'interacted with you')}
           <div class="notif-time">${fmtTime(n.created_at)}</div>
         </div>
       </div>`).join('');
@@ -1393,7 +1404,7 @@ async function saveProfile() {
 function openPremium(){document.getElementById('prem-ov').classList.remove('hidden')}
 function closePremium(){document.getElementById('prem-ov').classList.add('hidden')}
 function selPlan(el){document.querySelectorAll('.plan').forEach(p=>p.classList.remove('sel'));el.classList.add('sel')}
-function subVIP(){closePremium();showToast('👑 VIP trial activated! You\'re on fire 🔥')}
+function subVIP(){closePremium();showToast('👑 VIP plans launching soon — stay tuned!')}
 
 /* ══ UTILS ══════════════════════════════════════════════ */
 function showFieldErr(el, msg){el.textContent=msg;el.classList.remove('hidden');setTimeout(()=>el.classList.add('hidden'),4000);}
