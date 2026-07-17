@@ -2,6 +2,7 @@ const router = require('express').Router();
 const db = require('../db');
 const auth = require('../middleware/auth');
 const { requirePaid } = require('../middleware/auth');
+const { sendPush } = require('../utils/push');
 
 // GET /api/messages/:matchId  — fetch conversation
 router.get('/:matchId', auth, requirePaid, async (req, res) => {
@@ -64,6 +65,14 @@ router.post('/:matchId', auth, requirePaid, async (req, res) => {
     if (targetSocket) {
       io.to(targetSocket).emit('message:receive', {
         ...msg, sender_name: req.user.name, matchId: req.params.matchId
+      });
+    } else {
+      // Recipient offline → push so they come back
+      const preview = type === 'image' ? '📷 Sent you a photo' : (text || '').slice(0, 80);
+      sendPush(receiverId, {
+        title: req.user.name,
+        body: preview,
+        data: { type: 'message', matchId: req.params.matchId, senderId: req.user.id }
       });
     }
 

@@ -2,6 +2,7 @@ const router = require('express').Router();
 const db = require('../db');
 const auth = require('../middleware/auth');
 const { requirePaid } = require('../middleware/auth');
+const { sendPush } = require('../utils/push');
 
 // POST /api/matches/spark  — like or super-like someone
 router.post('/spark', auth, requirePaid, async (req, res) => {
@@ -67,6 +68,26 @@ router.post('/spark', auth, requirePaid, async (req, res) => {
         type: matched ? 'match' : type,
         fromUserId: req.user.id,
         fromName: req.user.name
+      });
+    }
+
+    // Push notification (fires whether or not they're online)
+    if (matched) {
+      sendPush(receiver_id, {
+        title: "It's a match! 🔥",
+        body: `You and ${req.user.name} sparked each other. Say hi!`,
+        data: { type: 'match', matchId, senderId: req.user.id }
+      });
+      sendPush(req.user.id, {
+        title: "It's a match! 🔥",
+        body: 'You have a new match! Open the chat to say hi.',
+        data: { type: 'match', matchId, senderId: receiver_id }
+      });
+    } else {
+      sendPush(receiver_id, {
+        title: type === 'super' ? 'Super Spark ⚡' : 'New Spark 🔥',
+        body: `${req.user.name} ${type === 'super' ? 'sent you a Super Spark!' : 'sparked your profile!'}`,
+        data: { type: 'spark', senderId: req.user.id }
       });
     }
 

@@ -100,6 +100,18 @@ async function migrate() {
     CREATE INDEX IF NOT EXISTS idx_notifs_user ON notifications(user_id);
     CREATE INDEX IF NOT EXISTS idx_users_location ON users(lat, lng);
   `);
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS device_tokens (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      token TEXT UNIQUE NOT NULL,
+      platform VARCHAR(20) DEFAULT 'android',
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      updated_at TIMESTAMPTZ DEFAULT NOW()
+    );
+  `);
+  await db.query(`CREATE INDEX IF NOT EXISTS idx_device_tokens_user ON device_tokens(user_id);`);
+
   console.log('✅ All tables created.');
   process.exit(0);
 }

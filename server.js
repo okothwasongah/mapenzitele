@@ -47,6 +47,7 @@ app.use('/api/matches', require('./routes/matches'));
 app.use('/api/messages',require('./routes/messages'));
 app.use('/api/payment', require('./routes/payment'));
 app.use('/api/photos',  require('./routes/photos'));
+app.use('/api/push',    require('./routes/push'));
 
 // ── SOCKET.IO REAL-TIME CHAT ──────────────────────────
 const onlineUsers = new Map(); // userId -> socketId

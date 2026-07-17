@@ -781,6 +781,7 @@ async function doLogin() {
     const data = await api('POST', '/auth/login', { email, password: pass });
     TOKEN = data.token; ME = data.user;
     localStorage.setItem('mt_token', TOKEN);
+    if(window.flushPendingPushToken) window.flushPendingPushToken();
     closeAuth(); launchApp();
   } catch(e) { showFieldErr(err, e.message); btn.innerHTML = "Let's Go 🔥"; btn.disabled = false; }
 }
@@ -800,6 +801,7 @@ async function proceedToPay() {
     const data = await api('POST', '/auth/register', { name:n, age:parseInt(a), email:e, password:p, gender:userGender, looking_for:userLooking, mood:userMood });
     TOKEN = data.token; ME = data.user;
     localStorage.setItem('mt_token', TOKEN);
+    if(window.flushPendingPushToken) window.flushPendingPushToken();
     closeAuth();
     document.getElementById('pay-overlay').classList.remove('hidden');
   } catch(e) { showFieldErr(err, e.message); btn.innerHTML='Continue to Payment →'; btn.disabled=false; }
@@ -1421,6 +1423,78 @@ function fmtTime(iso){
   if(diff<86400) return d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0');
   return d.toLocaleDateString();
 }
+</script>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   mapenziTELE — Capacitor push + native bridge
+   Paste this <script> block into public/index.html on the website,
+   just before the closing </body>. It is inert in a normal browser
+   and only activates inside the Capacitor Android app.
+   ═══════════════════════════════════════════════════════════════ */
+(function () {
+  const Cap = window.Capacitor;
+  if (!Cap || !Cap.isNativePlatform || !Cap.isNativePlatform()) return; // browser: do nothing
+
+  const Push = Cap.Plugins.PushNotifications;
+  const App = Cap.Plugins.App;
+
+  // Register the device token with the backend (requires the user to be logged in)
+  async function sendToken(token) {
+    try {
+      const jwt = localStorage.getItem('mt_token');
+      if (!jwt) { // not logged in yet — retry after login
+        localStorage.setItem('pendingPushToken', token);
+        return;
+      }
+      await fetch('/api/push/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + jwt },
+        body: JSON.stringify({ token, platform: 'android' })
+      });
+      localStorage.removeItem('pendingPushToken');
+    } catch (e) { console.warn('push register failed', e); }
+  }
+  // Expose so the site can flush a pending token right after login succeeds
+  window.flushPendingPushToken = function () {
+    const t = localStorage.getItem('pendingPushToken');
+    if (t) sendToken(t);
+  };
+
+  async function initPush() {
+    let perm = await Push.checkPermissions();
+    if (perm.receive === 'prompt') perm = await Push.requestPermissions();
+    if (perm.receive !== 'granted') return;
+    await Push.register();
+  }
+
+  Push.addListener('registration', (t) => sendToken(t.value));
+  Push.addListener('registrationError', (e) => console.warn('push reg error', e));
+
+  // Tapping a notification deep-links into the right screen
+  Push.addListener('pushNotificationActionPerformed', (action) => {
+    const data = action.notification.data || {};
+    if (data.type === 'message' && data.matchId && window.tryOpenChatMatch) {
+      window.tryOpenChatMatch(data.matchId, data.senderId);
+    } else if (data.type === 'match' && window.showTab) {
+      const el = document.getElementById('sb-messages');
+      window.showTab('messages', el);
+    } else if (data.type === 'spark' && window.showTab) {
+      const el = document.getElementById('sb-notifications');
+      if (el) window.showTab('notifications', el);
+    }
+  });
+
+  // Android hardware back button: go back in the SPA, or minimise at root
+  App.addListener('backButton', ({ canGoBack }) => {
+    if (window.history.length > 1) window.history.back();
+    else App.exitApp();
+  });
+
+  document.addEventListener('DOMContentLoaded', initPush);
+  if (document.readyState !== 'loading') initPush();
+})();
+
 </script>
 </body>
 </html>
